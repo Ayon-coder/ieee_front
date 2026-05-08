@@ -1,5 +1,63 @@
 
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import type { EventRecord } from '../lib/api';
+
 const Events = () => {
+    const navigate = useNavigate();
+    const [events, setEvents] = useState<EventRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                setLoading(true);
+                const data = await api.getEvents();
+                setEvents(data);
+                setError('');
+            } catch (err) {
+                console.error('Error fetching events:', err);
+                setError('Failed to load events. Please try again later.');
+                setEvents([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchEvents();
+    }, []);
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'Date TBA';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        } catch {
+            return dateString;
+        }
+    };
+
+    const getCategoryColor = (category?: string) => {
+        const categoryMap = {
+            'Workshop': 'Workshop',
+            'Hackathon': 'Hackathon',
+            'Seminar': 'Seminar',
+            'Conference': 'Conference',
+            'Webinar': 'Webinar'
+        };
+        if (!category) {
+            return 'Event';
+        }
+
+        return categoryMap[category as keyof typeof categoryMap] || 'Event';
+    };
+
     return (
         <>
             <main className="pt-24 pb-20">
@@ -22,70 +80,79 @@ const Events = () => {
 <h2 className="font-headline text-3xl font-bold tracking-tight">Upcoming Events</h2>
 <div className="h-px flex-1 mx-8 bg-gradient-to-r from-outline-variant/50 to-transparent"></div>
 </div>
+
+{loading && (
+    <div className="flex justify-center items-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+)}
+
+{error && (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 text-red-800">
+        <p className="font-semibold mb-2">⚠ Error Loading Events</p>
+        <p className="text-sm">{error}</p>
+        <p className="text-xs mt-3">Ensure the backend server is running on port 5001</p>
+    </div>
+)}
+
+{!loading && events.length === 0 && !error && (
+    <div className="text-center py-12">
+        <p className="text-on-surface-variant">No events available at this time.</p>
+    </div>
+)}
+
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-{/*  Event Card 1  */}
-<article className="glass-panel ghost-border rounded-full overflow-hidden flex flex-col group transition-all duration-300 hover:scale-[1.02] hover:bg-surface-bright/20">
-<div className="relative h-56 overflow-hidden">
-<img alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Futuristic glowing circuitry lines on dark background with cyan neon accents representing high-end technology and innovation" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwR0xqWWghWzHZxjA1UuZnDtcQhM9TBQ0lQWTi9ZkOvgeUpLwAQ8b5qefhi8FDXnJnscK5uy6ujhq9UZ_dPs4ZsgnwbnuiYr3xicc8W8SV4zliNtxPYR1zK1UO0M7p-ce-ibnmlcxzqanMBzO9Swp9bPiAlUdDVWxEbOpYq8-04DNCWQhIa-qRX8bzxfXhcItlHLFLSmxcXsjJxFMGaA4OgjIE96h-wf6vpXelAvkyy85x288t6tfup2Msrsrq4SDc-PtmFWHaIeVX"/>
-<div className="absolute top-4 left-4 glass-panel px-3 py-1 rounded-lg text-xs font-bold tracking-widest text-primary uppercase">
-                            Workshop
-                        </div>
-</div>
-<div className="p-8 flex flex-col flex-1">
-<div className="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
-<span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_today</span>
-<span>October 24, 2024</span>
-</div>
-<h3 className="font-headline text-2xl font-bold mb-4 leading-tight group-hover:text-primary transition-colors">Deep Dive: Quantum Computing Basics</h3>
-<p className="text-on-surface-variant text-sm mb-8 line-clamp-3">Join us for an intensive session exploring the fundamentals of quantum mechanics in modern computing architectures.</p>
-<div className="mt-auto flex gap-4">
-<button className="btn-gradient flex-1 py-3 rounded-xl font-headline font-bold text-on-primary text-sm tracking-wide">Register</button>
-<button className="flex-1 py-3 rounded-xl border border-outline/40 text-on-surface font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors">Learn More</button>
-</div>
-</div>
-</article>
-{/*  Event Card 2  */}
-<article className="glass-panel ghost-border rounded-full overflow-hidden flex flex-col group transition-all duration-300 hover:scale-[1.02] hover:bg-surface-bright/20">
-<div className="relative h-56 overflow-hidden">
-<img alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Group of diverse students collaborating around a laptop in a modern brightly lit tech hub with large windows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA2qNmDlfMHa_HGpL3aO2GFk-gIFHU4DwKPcmLAjH9Lfa1RHvjo4zsPQh8pTSyLt_anxF5eQ46TcDwlg1sGk646kP6Wfs9p3Zz8Nb6wB_hXdV5TNlbFEPqqOJ03EJ8oKRP35T4S13JXewC8JqOmiKOPJVBtcdwpMuU1n1sFXFDj8O5qJT9eRnQkZ42M4lbNVggga_vdQTpRltACNhF8CULk283EomuTBJOjXTu0kxx65XkqRVU2jII9FulnYJrBm4vAyQyI__Dk1dp"/>
-<div className="absolute top-4 left-4 glass-panel px-3 py-1 rounded-lg text-xs font-bold tracking-widest text-primary uppercase">
-                            Hackathon
-                        </div>
-</div>
-<div className="p-8 flex flex-col flex-1">
-<div className="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
-<span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_today</span>
-<span>November 05, 2024</span>
-</div>
-<h3 className="font-headline text-2xl font-bold mb-4 leading-tight group-hover:text-primary transition-colors">Sustainable Tech Sprint 2024</h3>
-<p className="text-on-surface-variant text-sm mb-8 line-clamp-3">A 48-hour challenge to build solutions addressing climate change using AI and IoT technologies.</p>
-<div className="mt-auto flex gap-4">
-<button className="btn-gradient flex-1 py-3 rounded-xl font-headline font-bold text-on-primary text-sm tracking-wide">Register</button>
-<button className="flex-1 py-3 rounded-xl border border-outline/40 text-on-surface font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors">Learn More</button>
-</div>
-</div>
-</article>
-{/*  Event Card 3  */}
-<article className="glass-panel ghost-border rounded-full overflow-hidden flex flex-col group transition-all duration-300 hover:scale-[1.02] hover:bg-surface-bright/20">
-<div className="relative h-56 overflow-hidden">
-<img alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Close-up of a high-tech robotic hand reaching towards a human hand in a clean white laboratory setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCc3KOn4XHwQW2sYzwM2oETrOHBYgiPswwsutSe4u94HSnt5zeCO21YY9OdUM3TmqJdgrB7Ik_Qk1-gGIuDdaEdA51Q3NiH-oY7uvOyMsqjHsMxBRnByAmviobO5_0U12u5WXFKp6HnUnTtLRuS0mF_b9XrPuM99I8THdwVDDoI2QIJ4ClXz5XYGKTnuaDR28IqEsdDHzQOaZITnlJv0yoHgpoRTLycpewHkwygwgVqDyfYzsXDxn6z0Rt-OQchrGBQzXQOW3TaQgUr"/>
-<div className="absolute top-4 left-4 glass-panel px-3 py-1 rounded-lg text-xs font-bold tracking-widest text-primary uppercase">
-                            Seminar
-                        </div>
-</div>
-<div className="p-8 flex flex-col flex-1">
-<div className="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
-<span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_today</span>
-<span>December 12, 2024</span>
-</div>
-<h3 className="font-headline text-2xl font-bold mb-4 leading-tight group-hover:text-primary transition-colors">Ethics in Artificial Intelligence</h3>
-<p className="text-on-surface-variant text-sm mb-8 line-clamp-3">Prominent speakers discuss the moral implications and governance frameworks of autonomous systems.</p>
-<div className="mt-auto flex gap-4">
-<button className="btn-gradient flex-1 py-3 rounded-xl font-headline font-bold text-on-primary text-sm tracking-wide">Register</button>
-<button className="flex-1 py-3 rounded-xl border border-outline/40 text-on-surface font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors">Learn More</button>
-</div>
-</div>
-</article>
+{events.map((event) => (
+    <article key={event.id} className="glass-panel ghost-border rounded-full overflow-hidden flex flex-col group transition-all duration-300 hover:scale-[1.02] hover:bg-surface-bright/20">
+        <div className="relative h-56 overflow-hidden">
+            {event.imageUrl ? (
+                <img 
+                    alt={event.name} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    src={event.imageUrl}
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                />
+            ) : null}
+            <div className={`absolute inset-0 bg-gradient-to-br from-primary/10 to-tertiary-container/10 flex items-center justify-center ${event.imageUrl ? 'hidden' : ''}`}>
+                <span className="material-symbols-outlined text-6xl text-primary/20">event</span>
+            </div>
+            <div className="absolute top-4 left-4 glass-panel px-3 py-1 rounded-lg text-xs font-bold tracking-widest text-primary uppercase">
+                {getCategoryColor(event.category)}
+            </div>
+        </div>
+        <div className="p-8 flex flex-col flex-1">
+            <div className="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
+                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_today</span>
+                <span>{formatDate(event.date)}</span>
+            </div>
+            <h3 className="font-headline text-2xl font-bold mb-4 leading-tight group-hover:text-primary transition-colors">
+                {event.name}
+            </h3>
+            <p className="text-on-surface-variant text-sm mb-8 line-clamp-3">
+                {event.description || 'Join us for this exciting IEEE event.'}
+            </p>
+            <div className="mt-auto flex gap-4">
+                <button
+                    type="button"
+                    onClick={() => navigate(`/events/${event.id}/certificate`, { state: { event } })}
+                    className="btn-gradient flex-1 py-3 rounded-xl font-headline font-bold text-on-primary text-sm tracking-wide hover:shadow-lg transition-shadow"
+                >
+                    View Certificate
+                </button>
+                <button
+                    type="button"
+                    onClick={() => navigate('/event-details')}
+                    className="flex-1 py-3 rounded-xl border border-outline/40 text-on-surface font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors"
+                >
+                    Learn More
+                </button>
+            </div>
+        </div>
+    </article>
+))}
 </div>
 </section>
 {/*  Past Events  */}
