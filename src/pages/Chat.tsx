@@ -5,7 +5,6 @@ import { sendChat, warmupChat } from '../lib/chatbotApi';
 import type { ChatMessage, ChatMode, ChatSource } from '../lib/chatbotApi';
 import { ChatBackdrop } from '../components/PageBackdrops';
 import ChatOnboardingModal from '../components/ChatOnboardingModal';
-import ChatLoadingIndicator from '../components/ChatLoadingIndicator';
 
 type DisplayMessage = {
     role: 'user' | 'assistant';
@@ -549,7 +548,6 @@ const Chat = () => {
             {showOnboarding && (
                 <ChatOnboardingModal 
                     onDismiss={handleOnboardingDismiss}
-                    mode={mode}
                 />
             )}
         </main>

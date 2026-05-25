@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import { warmupChat } from '../lib/chatbotApi';
-import type { ChatMode } from '../lib/chatbotApi';
 import '../styles/ChatOnboarding.css';
 
 const BOOT_LINES = [
@@ -14,10 +13,9 @@ const BOOT_LINES = [
 
 interface ChatOnboardingModalProps {
   onDismiss: () => void;
-  mode: ChatMode;
 }
 
-function ChatOnboardingModal({ onDismiss, mode }: ChatOnboardingModalProps) {
+function ChatOnboardingModal({ onDismiss }: ChatOnboardingModalProps) {
   const [phase, setPhase] = useState<'intro' | 'warming' | 'error'>('intro');
   const [errorMsg, setErrorMsg] = useState('');
   const [bootStep, setBootStep] = useState(0);
