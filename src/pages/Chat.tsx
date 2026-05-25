@@ -384,149 +384,181 @@ const Chat = () => {
                     </div>
                 </header>
 
-                {/* Ban banner */}
-                {banned && (
-                    <div
-                        className="flex items-center gap-3 px-4 py-3 mb-3"
-                        style={{
-                            background: 'rgba(255,61,113,0.08)',
-                            border: '1px solid var(--mg)',
-                            borderLeftWidth: '3px',
-                        }}
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                        </svg>
-                        <div className="flex-1">
-                            <div className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--mg)' }}>
-                                Session locked
-                            </div>
-                            <div className="text-[13px]" style={{ color: 'var(--txt-2)' }}>
-                                Cooldown: <strong style={{ color: 'var(--mg)' }}>{banMins}</strong> minute{banMins !== 1 ? 's' : ''} remaining
-                            </div>
+                {/* macOS & Cyberpunk Style Window Panel */}
+                <div className="relative flex-1 flex flex-col bg-[rgba(13,19,32,0.8)] border border-[var(--line-cy)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] backdrop-blur-md rounded-none mb-6 min-h-0 overflow-hidden animate-fade-in">
+                    {/* Window Titlebar */}
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--line)] bg-[rgba(0,229,255,0.03)] font-mono-ieee text-[11px] text-[var(--txt-3)] select-none">
+                        {/* Traffic light dots */}
+                        <div className="flex items-center gap-1.5 mr-4">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#ff3d71]/80 hover:bg-[#ff3d71] transition-colors cursor-pointer" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#ffb84d]/80 hover:bg-[#ffb84d] transition-colors cursor-pointer" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80 hover:bg-[#22c55e] transition-colors cursor-pointer" />
+                        </div>
+                        
+                        {/* Path / Title */}
+                        <div className="flex-1 text-center md:text-left truncate font-medium">
+                            ~/ieee-assistant/channels/{mode}
+                        </div>
+                        
+                        {/* Status / Channel */}
+                        <div className="font-mono-ieee text-[9px] tracking-widest text-[var(--cy)] uppercase hidden sm:block">
+                            SECURE CONNECTION // {activeMode.code}
                         </div>
                     </div>
-                )}
 
-                {/* Messages */}
-                <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto py-6 space-y-4 pr-1">
-                    {messages.length === 0 && !isTyping && (
-                        <div className="text-center pt-16 px-4 reveal-stagger is-visible">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 mb-8" style={{ border: '1px solid rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.05)' }}>
-                                <div className="status-dot" />
-                                <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">[{activeMode.code}] Online</span>
-                            </div>
-                            <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter mb-4">
-                                Talk to the <span className="text-gradient">IEEE Assistant</span>
-                            </h1>
-                            <p className="max-w-xl mx-auto text-on-surface-variant text-base leading-relaxed">
-                                {activeMode.blurb}
-                            </p>
-                            <div className="mt-10 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-                                {(mode === 'deep_dive'
-                                    ? ['What is the IEEE 802.11ax standard?', 'Explain transformer attention.', 'Compare 5G and 6G architectures.']
-                                    : ['When is the next workshop?', 'Who is the chairperson?', 'What events are upcoming?']
-                                ).map((q) => (
-                                    <button
-                                        key={q}
-                                        onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                                        className="px-3 py-2 text-[12px] text-on-surface-variant hover:text-primary transition-colors"
-                                        style={{ border: '1px solid var(--line)', background: 'rgba(13,19,32,0.5)' }}
-                                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
-                                        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
-                                    >
-                                        {q}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Window Content */}
+                    <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 overflow-hidden relative">
+                        {/* Corner Accents */}
+                        <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[var(--cy)] pointer-events-none" />
+                        <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[var(--cy)] pointer-events-none" />
+                        <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[var(--cy)] pointer-events-none" />
+                        <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--cy)] pointer-events-none" />
 
-                    {messages.map((msg, i) => (
-                        <MessageRow key={i} msg={msg} />
-                    ))}
-
-                    {isTyping && (
-                        <div className="flex justify-start">
-                            {mode === 'deep_dive' ? (
-                                <div
-                                    className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line-cy)] min-w-[260px]"
-                                    style={{
-                                        clipPath:
-                                            'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">
-                                            STEP {currentStatus.code}/005
-                                        </span>
-                                        <span className="dot-bounce" />
+                        {/* Ban banner */}
+                        {banned && (
+                            <div
+                                className="flex items-center gap-3 px-4 py-3 mb-3 relative z-10 animate-fade-in"
+                                style={{
+                                    background: 'rgba(255,61,113,0.08)',
+                                    border: '1px solid var(--mg)',
+                                    borderLeftWidth: '3px',
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                </svg>
+                                <div className="flex-1">
+                                    <div className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--mg)' }}>
+                                        Session locked
                                     </div>
-                                    <div key={statusStep} className="text-[13px] font-mono-ieee" style={{ animation: 'chat-shift 0.4s ease-out' }}>
-                                        {currentStatus.text}
-                                    </div>
-                                    <div className="relative h-0.5 mt-3 overflow-hidden" style={{ background: 'rgba(0,229,255,0.08)' }}>
-                                        <div
-                                            className="absolute inset-y-0 left-0 transition-all"
-                                            style={{
-                                                width: `${statusProgress}%`,
-                                                background: 'linear-gradient(to right, var(--cy), var(--am))',
-                                            }}
-                                        />
+                                    <div className="text-[13px]" style={{ color: 'var(--txt-2)' }}>
+                                        Cooldown: <strong style={{ color: 'var(--mg)' }}>{banMins}</strong> minute{banMins !== 1 ? 's' : ''} remaining
                                     </div>
                                 </div>
-                            ) : (
-                                <div
-                                    className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line)] flex items-center gap-1.5"
-                                    style={{
-                                        clipPath:
-                                            'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
-                                    }}
-                                >
-                                    <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase opacity-60 mr-1">
-                                        IEEE ASSISTANT · composing
-                                    </span>
-                                    <span className="dot-bounce" />
-                                    <span className="dot-bounce" style={{ animationDelay: '120ms' }} />
-                                    <span className="dot-bounce" style={{ animationDelay: '240ms' }} />
+                            </div>
+                        )}
+
+                        {/* Messages */}
+                        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto py-4 space-y-4 pr-1">
+                            {messages.length === 0 && !isTyping && (
+                                <div className="text-center pt-16 px-4 reveal-stagger is-visible">
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 mb-8" style={{ border: '1px solid rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.05)' }}>
+                                        <div className="status-dot" />
+                                        <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">[{activeMode.code}] Online</span>
+                                    </div>
+                                    <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter mb-4">
+                                        Talk to the <span className="text-gradient">IEEE Assistant</span>
+                                    </h1>
+                                    <p className="max-w-xl mx-auto text-on-surface-variant text-base leading-relaxed">
+                                        {activeMode.blurb}
+                                    </p>
+                                    <div className="mt-10 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+                                        {(mode === 'deep_dive'
+                                            ? ['What is the IEEE 802.11ax standard?', 'Explain transformer attention.', 'Compare 5G and 6G architectures.']
+                                            : ['When is the next workshop?', 'Who is the chairperson?', 'What events are upcoming?']
+                                        ).map((q) => (
+                                            <button
+                                                key={q}
+                                                onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                                                className="px-3 py-2 text-[12px] text-on-surface-variant hover:text-primary transition-colors"
+                                                style={{ border: '1px solid var(--line)', background: 'rgba(13,19,32,0.5)' }}
+                                                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
+                                                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
+                                            >
+                                                {q}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {messages.map((msg, i) => (
+                                <MessageRow key={i} msg={msg} />
+                            ))}
+
+                            {isTyping && (
+                                <div className="flex justify-start">
+                                    {mode === 'deep_dive' ? (
+                                        <div
+                                            className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line-cy)] min-w-[260px]"
+                                            style={{
+                                                clipPath:
+                                                    'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">
+                                                    STEP {currentStatus.code}/005
+                                                </span>
+                                                <span className="dot-bounce" />
+                                            </div>
+                                            <div key={statusStep} className="text-[13px] font-mono-ieee" style={{ animation: 'chat-shift 0.4s ease-out' }}>
+                                                {currentStatus.text}
+                                            </div>
+                                            <div className="relative h-0.5 mt-3 overflow-hidden" style={{ background: 'rgba(0,229,255,0.08)' }}>
+                                                <div
+                                                    className="absolute inset-y-0 left-0 transition-all"
+                                                    style={{
+                                                        width: `${statusProgress}%`,
+                                                        background: 'linear-gradient(to right, var(--cy), var(--am))',
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line)] flex items-center gap-1.5"
+                                            style={{
+                                                clipPath:
+                                                    'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
+                                            }}
+                                        >
+                                            <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase opacity-60 mr-1">
+                                                IEEE ASSISTANT · composing
+                                            </span>
+                                            <span className="dot-bounce" />
+                                            <span className="dot-bounce" style={{ animationDelay: '120ms' }} />
+                                            <span className="dot-bounce" style={{ animationDelay: '240ms' }} />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
 
-                {/* Composer */}
-                <div className="pt-4 pb-2 flex items-end gap-3" style={{ borderTop: '1px solid var(--line)' }}>
-                    <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={handleInput}
-                        onKeyDown={handleKeyDown}
-                        rows={1}
-                        placeholder={
-                            banned ? 'Session locked…' :
-                            isTyping ? 'IEEE Assistant is thinking…' :
-                            'Message the IEEE Assistant…'
-                        }
-                        disabled={inputDisabled}
-                        className="flex-1 bg-transparent border border-[var(--line)] px-4 py-3 text-[14px] resize-none outline-none focus:border-[var(--line-cy)] disabled:opacity-50"
-                        style={{ maxHeight: 200, color: 'var(--txt)', fontFamily: 'var(--font-body)', background: 'rgba(5,7,13,0.6)' }}
-                    />
-                    <button
-                        onClick={handleSend}
-                        disabled={!input.trim() || inputDisabled}
-                        className="btn-gradient px-5 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
-                        aria-label="Send"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M5 12h14M13 5l7 7-7 7" />
-                        </svg>
-                    </button>
+                        {/* Composer */}
+                        <div className="pt-4 pb-2 flex items-end gap-3" style={{ borderTop: '1px solid var(--line)' }}>
+                            <textarea
+                                ref={inputRef}
+                                value={input}
+                                onChange={handleInput}
+                                onKeyDown={handleKeyDown}
+                                rows={1}
+                                placeholder={
+                                    banned ? 'Session locked…' :
+                                    isTyping ? 'IEEE Assistant is thinking…' :
+                                    'Message the IEEE Assistant…'
+                                }
+                                disabled={inputDisabled}
+                                className="flex-1 bg-transparent border border-[var(--line)] px-4 py-3 text-[14px] resize-none outline-none focus:border-[var(--line-cy)] disabled:opacity-50"
+                                style={{ maxHeight: 200, color: 'var(--txt)', fontFamily: 'var(--font-body)', background: 'rgba(5,7,13,0.6)' }}
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || inputDisabled}
+                                className="btn-gradient px-5 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                                aria-label="Send"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 12h14M13 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-center mt-2" style={{ color: 'var(--txt-3)' }}>
+                            Press Enter to send · Shift+Enter for new line
+                        </p>
+                    </div>
                 </div>
-                <p className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-center" style={{ color: 'var(--txt-3)' }}>
-                    Press Enter to send · Shift+Enter for new line
-                </p>
             </div>
 
             <style>{`

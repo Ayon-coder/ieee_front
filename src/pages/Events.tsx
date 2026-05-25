@@ -22,7 +22,7 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
             className="glass-card holo-edge tilt-3d flex flex-col group transition-all duration-300 relative"
             {...bind}
         >
-            <div className="tilt-layer flex flex-col" style={{ '--z': '32px' } as React.CSSProperties}>
+            <div className="tilt-layer flex flex-col flex-1" style={{ '--z': '20px' } as React.CSSProperties}>
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
 
@@ -50,7 +50,7 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
                 </div>
 
                 {/* Content */}
-                <div className="p-7 flex flex-col flex-1">
+                <div className="p-7 pb-2 flex flex-col flex-1">
                     <div className="flex items-center gap-2 mb-4">
                         <span className="material-symbols-outlined text-sm" style={{ color: 'var(--txt-3)', fontSize: '14px' }}>calendar_today</span>
                         <span className="font-mono-ieee text-[10px] tracking-wider" style={{ color: 'var(--txt-3)' }}>{formatDate(event.date)}</span>
@@ -58,45 +58,47 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
                     <h3 className="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-primary transition-colors">
                         {event.name}
                     </h3>
-                    <p className="text-sm mb-8 line-clamp-3" style={{ color: 'var(--txt-2)' }}>
+                    <p className="text-sm line-clamp-3 mb-4" style={{ color: 'var(--txt-2)' }}>
                         {event.description || 'Join us for this exciting IEEE event.'}
                     </p>
-                    <div className="mt-auto flex gap-3 relative z-10">
-                        <button
-                            type="button"
-                            onClickCapture={onCertificate}
-                            onClick={onCertificate}
-                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold relative z-20"
-                            style={{ 
-                                pointerEvents: 'auto', 
-                                cursor: 'pointer',
-                                userSelect: 'none',
-                                WebkitUserSelect: 'none',
-                                touchAction: 'manipulation'
-                            } as React.CSSProperties}
-                        >
-                            View Certificate
-                        </button>
-                        <button
-                            type="button"
-                            onClickCapture={onLearnMore}
-                            onClick={onLearnMore}
-                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors relative z-20"
-                            style={{ 
-                                border: '1px solid var(--line)', 
-                                pointerEvents: 'auto', 
-                                cursor: 'pointer',
-                                userSelect: 'none',
-                                WebkitUserSelect: 'none',
-                                touchAction: 'manipulation'
-                            } as React.CSSProperties}
-                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
-                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
-                        >
-                            Learn More
-                        </button>
-                    </div>
                 </div>
+            </div>
+
+            {/* Buttons container pulled outside the 3D translation zone to keep it in the flat interaction plane */}
+            <div className="px-7 pb-7 pt-2 flex gap-3 relative z-30">
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onCertificate();
+                    }}
+                    className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold cursor-pointer"
+                    style={{ 
+                        pointerEvents: 'auto', 
+                        touchAction: 'manipulation'
+                    } as React.CSSProperties}
+                >
+                    View Certificate
+                </button>
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onLearnMore();
+                    }}
+                    className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                    style={{ 
+                        border: '1px solid var(--line)', 
+                        pointerEvents: 'auto', 
+                        touchAction: 'manipulation'
+                    } as React.CSSProperties}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
+                >
+                    Learn More
+                </button>
             </div>
         </article>
     );
