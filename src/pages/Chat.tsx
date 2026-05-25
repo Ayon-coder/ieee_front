@@ -181,19 +181,6 @@ const Chat = () => {
         setShowOnboarding(false);
     }, []);
 
-    const handleInitialResponse = useCallback((content: string, sources?: any[]) => {
-        const assistantMsg: DisplayMessage = {
-            role: 'assistant',
-            content,
-            sources,
-        };
-        setMessages([assistantMsg]);
-        setHistory([
-            { role: 'user', content: 'hello' },
-            { role: 'assistant', content },
-        ]);
-    }, []);
-
     /* Warmup once on mount (no-op if SiteLoader already warmed it). */
     useEffect(() => {
         warmupChat().catch(() => { /* silent — first request just takes longer */ });
@@ -562,7 +549,6 @@ const Chat = () => {
             {showOnboarding && (
                 <ChatOnboardingModal 
                     onDismiss={handleOnboardingDismiss}
-                    onInitialResponse={handleInitialResponse}
                     mode={mode}
                 />
             )}

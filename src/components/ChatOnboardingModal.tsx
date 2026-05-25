@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { warmupChat, sendChat } from '../lib/chatbotApi';
+import { warmupChat } from '../lib/chatbotApi';
 import type { ChatMode } from '../lib/chatbotApi';
 import '../styles/ChatOnboarding.css';
 
@@ -14,12 +14,11 @@ const BOOT_LINES = [
 
 interface ChatOnboardingModalProps {
   onDismiss: () => void;
-  onInitialResponse: (content: string, sources?: any[]) => void;
   mode: ChatMode;
 }
 
-function ChatOnboardingModal({ onDismiss, onInitialResponse, mode }: ChatOnboardingModalProps) {
-  const [phase, setPhase] = useState<'intro' | 'warming' | 'initializing' | 'error'>('intro');
+function ChatOnboardingModal({ onDismiss, mode }: ChatOnboardingModalProps) {
+  const [phase, setPhase] = useState<'intro' | 'warming' | 'error'>('intro');
   const [errorMsg, setErrorMsg] = useState('');
   const [bootStep, setBootStep] = useState(0);
 
@@ -41,25 +40,15 @@ function ChatOnboardingModal({ onDismiss, onInitialResponse, mode }: ChatOnboard
         throw new Error('No response from backend');
       }
       
-      // Move to initializing phase
-      setPhase('initializing');
-      
-      // Send initial welcome message
-      const data = await sendChat(
-        [{ role: 'user', content: 'hello' }],
-        mode
-      );
-      
-      const content = data.choices?.[0]?.message?.content ?? 'Welcome to IEEE Assistant!';
-      onInitialResponse(content, data.sources);
-      
+      // Just dismiss - don't try to send initial message
+      // This prevents timeouts and connection issues during onboarding
       setTimeout(() => onDismiss(), 500);
     } catch (e) {
       console.error('Warmup failed:', e);
       setPhase('error');
       setErrorMsg('Could not connect to the chatbot backend. Please make sure it is running and try again.');
     }
-  }, [mode, onDismiss, onInitialResponse]);
+  }, [onDismiss]);
 
   return (
     <div className="chat-modal">
@@ -137,23 +126,6 @@ function ChatOnboardingModal({ onDismiss, onInitialResponse, mode }: ChatOnboard
             </div>
             <div className="chat-boot__bar" aria-hidden="true">
               <span style={{ width: `${((bootStep + 1) / BOOT_LINES.length) * 100}%` }}></span>
-            </div>
-          </div>
-        )}
-
-        {phase === 'initializing' && (
-          <div className="chat-modal__inner chat-modal__inner--boot">
-            <div className="chat-modal__tag">[INITIALIZING]</div>
-            <h2 className="chat-modal__title">Fetching knowledge base</h2>
-            <div className="chat-boot">
-              <div className="chat-boot__line chat-boot__line--active">
-                <span className="chat-boot__num">[06]</span>
-                <span className="chat-boot__txt">> loading context and sources...</span>
-                <span className="chat-boot__cursor"></span>
-              </div>
-            </div>
-            <div className="chat-boot__bar" aria-hidden="true">
-              <span style={{ width: '100%' }}></span>
             </div>
           </div>
         )}
