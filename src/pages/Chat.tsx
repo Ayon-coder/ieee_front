@@ -337,14 +337,14 @@ const Chat = () => {
     const inputDisabled = isTyping || banned;
 
     return (
-        <main className="relative pt-20 pb-6 min-h-screen flex flex-col">
+        <main className="relative pt-0 md:pt-20 pb-0 md:pb-6 h-[100dvh] md:min-h-screen flex flex-col overflow-hidden md:overflow-visible">
             <div className="absolute inset-0 -z-10">
                 <ChatBackdrop />
             </div>
 
-            <div className="max-w-5xl w-full mx-auto px-4 md:px-8 flex-1 flex flex-col min-h-0">
-                {/* Header */}
-                <header className="flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid var(--line)' }}>
+            <div className="max-w-5xl w-full mx-auto px-0 md:px-8 flex-1 flex flex-col min-h-0">
+                {/* Header (Desktop Only) */}
+                <header className="hidden md:flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid var(--line)' }}>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(-1)}
@@ -388,30 +388,64 @@ const Chat = () => {
                     </div>
                 </header>
 
-                {/* macOS & Cyberpunk Style Window Panel */}
-                <div className="relative flex-1 flex flex-col bg-[rgba(13,19,32,0.8)] border border-[var(--line-cy)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] backdrop-blur-md rounded-none mb-6 min-h-0 overflow-hidden animate-fade-in">
+                {/* macOS & Cyberpunk Style Window Panel (Full-screen on mobile) */}
+                <div className="relative flex-1 flex flex-col bg-[rgba(13,19,32,0.8)] border-y md:border border-[var(--line-cy)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] backdrop-blur-md rounded-none mb-0 md:mb-6 min-h-0 overflow-hidden animate-fade-in">
                     {/* Window Titlebar */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--line)] bg-[rgba(0,229,255,0.03)] font-mono-ieee text-[11px] text-[var(--txt-3)] select-none">
-                        {/* Traffic light dots */}
-                        <div className="flex items-center gap-1.5 mr-4">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#ff3d71]/80 hover:bg-[#ff3d71] transition-colors cursor-pointer" />
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#ffb84d]/80 hover:bg-[#ffb84d] transition-colors cursor-pointer" />
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80 hover:bg-[#22c55e] transition-colors cursor-pointer" />
+                    <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--line)] bg-[rgba(0,229,255,0.03)] font-mono-ieee text-[11px] text-[var(--txt-3)] select-none">
+                        {/* Left Side: Back button + Traffic light dots */}
+                        <div className="flex items-center gap-3">
+                            {/* Compact Back Arrow (Mobile Only) */}
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="md:hidden w-7 h-7 flex items-center justify-center border border-[var(--line)] hover:text-primary transition-colors bg-black/20"
+                                aria-label="Back"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            </button>
+
+                            <div className="hidden sm:flex items-center gap-1.5 mr-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#ff3d71]/80" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#ffb84d]/80" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80" />
+                            </div>
                         </div>
                         
-                        {/* Path / Title */}
+                        {/* Center Side: Path / Title */}
                         <div className="flex-1 text-center md:text-left truncate font-medium">
                             ~/ieee-assistant/channels/{mode}
                         </div>
                         
-                        {/* Status / Channel */}
-                        <div className="font-mono-ieee text-[9px] tracking-widest text-[var(--cy)] uppercase hidden sm:block">
-                            SECURE CONNECTION // {activeMode.code}
+                        {/* Right Side: Status or Compact Switcher (Mobile Only) */}
+                        <div className="flex items-center gap-2">
+                            {/* Desktop only status */}
+                            <div className="font-mono-ieee text-[9px] tracking-widest text-[var(--cy)] uppercase hidden md:block">
+                                SECURE CONNECTION // {activeMode.code}
+                            </div>
+                            
+                            {/* Mobile compact switcher */}
+                            <div className="flex md:hidden items-center border border-[var(--line)] bg-[rgba(5,7,13,0.5)] p-0.5">
+                                {MODES.map((m) => {
+                                    const active = m.key === mode;
+                                    return (
+                                        <button
+                                            key={m.key}
+                                            onClick={() => handleModeSwitch(m.key)}
+                                            className={`px-2 py-1 text-[9px] tracking-wider uppercase transition-colors ${
+                                                active
+                                                    ? 'text-[var(--cy)] bg-[var(--cy-soft)] font-bold'
+                                                    : 'text-[var(--txt-3)]'
+                                            }`}
+                                        >
+                                            {m.key === 'deep_dive' ? 'DD' : 'SB'}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
                     {/* Window Content */}
-                    <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0 overflow-hidden relative">
+                    <div className="flex-1 flex flex-col p-3 md:p-6 min-h-0 overflow-hidden relative">
                         {/* Corner Accents */}
                         <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[var(--cy)] pointer-events-none" />
                         <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[var(--cy)] pointer-events-none" />

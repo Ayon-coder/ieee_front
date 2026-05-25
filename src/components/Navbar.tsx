@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -16,9 +17,11 @@ const Navbar = () => {
             ? "font-mono-ieee text-[11px] tracking-[0.18em] uppercase text-primary border-b border-primary pb-0.5 transition-all"
             : "font-mono-ieee text-[11px] tracking-[0.18em] uppercase text-on-surface-variant hover:text-on-surface transition-all";
 
+    const isChatPage = location.pathname === '/chat';
+
     return (
         <nav
-            className="fixed top-0 w-full z-50 transition-all duration-300"
+            className={`fixed top-0 w-full z-50 transition-all duration-300 ${isChatPage ? 'hidden md:block' : ''}`}
             style={{
                 background: scrolled ? 'rgba(8,11,20,0.85)' : 'transparent',
                 backdropFilter: scrolled ? 'blur(20px)' : 'none',

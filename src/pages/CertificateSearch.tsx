@@ -32,6 +32,19 @@ const CertificateSearch = () => {
 
   const certRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchEventAndParticipants = async () => {
@@ -291,7 +304,7 @@ const CertificateSearch = () => {
   }
 
   return (
-    <main className="pt-24 pb-20 px-12 relative overflow-hidden">
+    <main className="pt-24 pb-20 px-4 md:px-12 relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
         <CertificateBackdrop />
       </div>
@@ -307,8 +320,8 @@ const CertificateSearch = () => {
       </section>
 
       <section className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <article className="xl:col-span-2 glass-panel rounded-3xl border border-outline-variant/20 p-8">
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight mb-2">
+        <article className="xl:col-span-2 glass-panel rounded-3xl border border-outline-variant/20 p-4 sm:p-8">
+          <h1 className="font-headline text-2xl sm:text-4xl font-extrabold tracking-tight mb-2">
             {event.name} <span className="text-gradient">Certificates</span>
           </h1>
           <p className="text-on-surface-variant mb-8">Search your name to preview and download your certificate.</p>
@@ -389,33 +402,65 @@ const CertificateSearch = () => {
                 </button>
               </div>
 
-              <div className="overflow-auto border border-outline-variant/20 rounded-2xl bg-surface-container-lowest/50 p-3">
-                <div
-                  ref={certRef}
-                  className="relative bg-white mx-auto shadow-sm"
-                  style={{
-                    width: `${certWidth}px`,
-                    height: `${certHeight}px`,
-                    backgroundImage: `url(${event.template?.svgUrl || event.styling?.svgUrl || ''})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
-                >
-                  <div
-                    className="absolute font-bold whitespace-nowrap"
-                    style={{
-                      left: `${textX}px`,
-                      top: `${textY}px`,
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: `${dynamicFontSize}px`,
-                      fontFamily,
-                      color: fontColor,
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {certificateData.name}
-                  </div>
-                </div>
+              {/* Responsive container that downscales the landscape certificate using transform: scale() */}
+              <div 
+                ref={containerRef}
+                className="border border-outline-variant/20 rounded-2xl bg-surface-container-lowest/50 p-2 sm:p-3 overflow-hidden flex justify-center items-center"
+              >
+                {(() => {
+                  const availableWidth = Math.max(containerWidth, 200);
+                  const previewScale = Math.min(availableWidth / certWidth, 1);
+                  return (
+                    <div
+                      style={{
+                        width: `${certWidth * previewScale}px`,
+                        height: `${certHeight * previewScale}px`,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        flexShrink: 0
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${certWidth}px`,
+                          height: `${certHeight}px`,
+                          transform: `scale(${previewScale})`,
+                          transformOrigin: 'top left',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0
+                        }}
+                      >
+                        <div
+                          ref={certRef}
+                          className="relative bg-white shadow-sm"
+                          style={{
+                            width: `${certWidth}px`,
+                            height: `${certHeight}px`,
+                            backgroundImage: `url(${event.template?.svgUrl || event.styling?.svgUrl || ''})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}
+                        >
+                          <div
+                            className="absolute font-bold whitespace-nowrap"
+                            style={{
+                              left: `${textX}px`,
+                              top: `${textY}px`,
+                              transform: 'translate(-50%, -50%)',
+                              fontSize: `${dynamicFontSize}px`,
+                              fontFamily,
+                              color: fontColor,
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            {certificateData.name}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ) : (
