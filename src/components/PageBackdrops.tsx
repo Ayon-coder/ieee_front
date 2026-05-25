@@ -157,20 +157,23 @@ export const TeamsBackdrop = () => {
         type Node = { x: number; y: number; z: number; vx: number; vy: number; vz: number; hue: 'cy' | 'am' };
         let nodes: Node[] = [];
 
+        const isMobile = () => window.innerWidth <= 768;
         const resize = () => {
             const p = canvas.parentElement;
             if (!p) return;
             // Make canvas 1.5x larger so it doesn't clip when spinning
-            width = p.clientWidth * 1.5;
-            height = p.clientHeight * 1.5;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
+            const baseScale = isMobile() ? 1.2 : 1.5;
+            width = p.clientWidth * baseScale;
+            height = p.clientHeight * baseScale;
+            const canvasScale = isMobile() ? 0.65 : 1; // Further reduce on mobile
+            canvas.width = width * dpr * canvasScale;
+            canvas.height = height * dpr * canvasScale;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
             canvas.style.marginLeft = `${-(width - p.clientWidth)/2}px`;
             canvas.style.marginTop = `${-(height - p.clientHeight)/2}px`;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            const count = Math.min(80, Math.floor((width * height) / 14000));
+            ctx.setTransform(dpr * canvasScale, 0, 0, dpr * canvasScale, 0, 0);
+            const count = isMobile() ? Math.min(25, Math.floor((width * height) / 28000)) : Math.min(80, Math.floor((width * height) / 14000));
             nodes = Array.from({ length: count }, () => ({
                 x: Math.random() * width,
                 y: Math.random() * height,
@@ -182,8 +185,15 @@ export const TeamsBackdrop = () => {
             }));
         };
 
+        let lastMouseUpdateTime = 0;
         const onMove = (e: PointerEvent) => {
             if (e.pointerType === 'touch') return;
+            // Throttle mouse updates on mobile
+            if (isMobile()) {
+                const now = Date.now();
+                if (now - lastMouseUpdateTime < 50) return; // 20hz update limit on mobile
+                lastMouseUpdateTime = now;
+            }
             const rect = canvas.getBoundingClientRect();
             mouse.x = e.clientX - rect.left;
             mouse.y = e.clientY - rect.top;
@@ -233,11 +243,12 @@ export const TeamsBackdrop = () => {
                 n.vy *= 0.985;
             }
 
-            /* Connecting lines */
-            const linkDist = 180;
-            for (let i = 0; i < nodes.length; i++) {
+            /* Connecting lines - reduce on mobile */
+            const linkDist = isMobile() ? 150 : 180;
+            const nodeCheckInterval = isMobile() ? 2 : 1; // Check every other node on mobile
+            for (let i = 0; i < nodes.length; i += nodeCheckInterval) {
                 const a = nodes[i];
-                for (let j = i + 1; j < nodes.length; j++) {
+                for (let j = i + 1; j < nodes.length; j += nodeCheckInterval) {
                     const b = nodes[j];
                     const dx = a.x - b.x;
                     if (Math.abs(dx) > linkDist) continue;

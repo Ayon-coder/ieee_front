@@ -623,3 +623,69 @@ body {
     from { transform: rotateZ(0deg); }
     to   { transform: rotateZ(360deg); }
 }
+
+/* --- MOBILE PERFORMANCE OPTIMIZATION -------------------------------------- */
+@media (max-width: 768px) {
+    /* Reduce animation frame rates on mobile */
+    .site-bg__scan {
+        animation: ieee-scanlines 24s linear infinite; /* Slower scanlines */
+    }
+    
+    .wire-shape {
+        animation-duration: 50s; /* Slower spinning */
+    }
+    .wire-core {
+        animation-duration: 35s;
+    }
+    .wire-ring {
+        animation-duration: 70s;
+    }
+    .wire-ring.r2 {
+        animation-duration: 90s;
+    }
+    
+    /* Reduce floating animations */
+    .float-y {
+        animation-duration: 16s;
+    }
+    .float-y-slow {
+        animation-duration: 22s;
+    }
+    
+    /* Slower orbiting */
+    .orbit-dot {
+        animation-duration: 28s;
+    }
+    .orbit-dot.amber {
+        animation-duration: 38s;
+    }
+    
+    /* Throttle hover effects */
+    .tilt-3d {
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease, border-color 0.6s ease;
+    }
+    
+    /* Reduce pulse animation speed */
+    .status-dot {
+        animation-duration: 3s;
+    }
+    
+    /* Optimize reveal animations */
+    .reveal-stagger > * {
+        transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .reveal {
+        transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    
+    /* Reduce glow effect on mobile */
+    .site-bg__glow {
+        filter: blur(60px);
+        opacity: 0.7;
+    }
+    
+    /* Disable parallax on small screens for performance */
+    .parallax-layer {
+        will-change: auto;
+    }
+}

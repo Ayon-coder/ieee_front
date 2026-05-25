@@ -14,11 +14,20 @@ if (typeof window !== 'undefined') {
         }
     });
 
+    let lastUpdateTime = 0;
+    const isMobile = () => window.innerWidth <= 768 || (typeof navigator !== 'undefined' && /mobile|android|iphone/i.test(navigator.userAgent));
+    const updateInterval = () => isMobile() ? 50 : 16; // 20fps on mobile, 60fps on desktop
+    
     const updateGlobalGyroCSS = () => {
-        const drift = getGlobalIdleDrift();
-        // Set global CSS variables for all .tilt-3d elements to inherit
-        document.documentElement.style.setProperty('--gyro-rx', `${(drift.dy * 12).toFixed(2)}deg`);
-        document.documentElement.style.setProperty('--gyro-ry', `${(drift.dx * 12).toFixed(2)}deg`);
+        const now = Date.now();
+        const interval = updateInterval();
+        if (now - lastUpdateTime >= interval) {
+            lastUpdateTime = now;
+            const drift = getGlobalIdleDrift();
+            // Set global CSS variables for all .tilt-3d elements to inherit
+            document.documentElement.style.setProperty('--gyro-rx', `${(drift.dy * 12).toFixed(2)}deg`);
+            document.documentElement.style.setProperty('--gyro-ry', `${(drift.dx * 12).toFixed(2)}deg`);
+        }
         requestAnimationFrame(updateGlobalGyroCSS);
     };
     updateGlobalGyroCSS();

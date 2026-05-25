@@ -12,6 +12,9 @@ const Layout = () => {
         let raf = 0;
         let pendingX = 0;
         let pendingY = 0;
+        let lastUpdateTime = 0;
+        const isMobile = () => window.innerWidth <= 768;
+        const updateInterval = isMobile() ? 100 : 16; // Throttle on mobile (10fps), 60fps on desktop
 
         const apply = () => {
             raf = 0;
@@ -22,9 +25,24 @@ const Layout = () => {
         };
 
         const handleMove = (e: PointerEvent) => {
+            // Skip tracking on touch devices
+            if (e.pointerType === 'touch') return;
+            
             pendingX = e.clientX;
             pendingY = e.clientY;
-            if (!raf) raf = requestAnimationFrame(apply);
+            
+            if (!raf) {
+                const now = Date.now();
+                if (now - lastUpdateTime >= updateInterval) {
+                    lastUpdateTime = now;
+                    raf = requestAnimationFrame(apply);
+                } else {
+                    raf = requestAnimationFrame(() => {
+                        lastUpdateTime = Date.now();
+                        apply();
+                    });
+                }
+            }
         };
 
         window.addEventListener('pointermove', handleMove, { passive: true });

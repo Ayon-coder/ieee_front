@@ -36,18 +36,20 @@ const Hero3D = () => {
         let height = 0;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+        const isMobile = () => window.innerWidth <= 768;
         const resize = () => {
             const parent = canvas.parentElement;
             if (!parent) return;
             width = parent.clientWidth;
             height = parent.clientHeight;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
+            const scale = isMobile() ? 0.7 : 1; // Reduce resolution on mobile
+            canvas.width = width * dpr * scale;
+            canvas.height = height * dpr * scale;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
 
-            const count = Math.min(70, Math.floor((width * height) / 18000));
+            const count = isMobile() ? Math.min(30, Math.floor((width * height) / 35000)) : Math.min(70, Math.floor((width * height) / 18000));
             particles = Array.from({ length: count }, () => ({
                 x: Math.random() * width,
                 y: Math.random() * height,

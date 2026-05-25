@@ -8,11 +8,12 @@ const CustomCursor = () => {
     const ringRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Bail on touch devices or reduced-motion preference
+        // Bail on touch devices, mobile, or reduced-motion preference
         if (
             typeof window.matchMedia !== 'function' ||
             window.matchMedia('(pointer: coarse)').matches ||
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+            (typeof window !== 'undefined' && window.innerWidth <= 768)
         ) {
             return;
         }
