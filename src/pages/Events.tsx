@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { EventRecord } from '../lib/api';
+import { cache, isEventsCacheFresh, setEvents as setEventsCache } from '../lib/cache';
 import { useScrollReveal, useTilt3D } from '../lib/use3d';
+import { EventsBackdrop } from '../components/PageBackdrops';
 
 /* ─── EventCard with 3D tilt + holo edge ──────────────────────────────── */
 type EventCardProps = {
@@ -58,18 +60,18 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
                     <p className="text-sm mb-8 line-clamp-3" style={{ color: 'var(--txt-2)' }}>
                         {event.description || 'Join us for this exciting IEEE event.'}
                     </p>
-                    <div className="mt-auto flex gap-3">
+                    <div className="mt-auto flex gap-3 relative z-10">
                         <button
                             type="button"
                             onClick={onCertificate}
-                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold"
+                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold relative z-10"
                         >
                             View Certificate
                         </button>
                         <button
                             type="button"
                             onClick={onLearnMore}
-                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors"
+                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors relative z-10"
                             style={{ border: '1px solid var(--line)' }}
                             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
                             onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
@@ -108,19 +110,26 @@ const PastEventTile = ({ month, title, desc }: { month: string; title: string; d
 
 const Events = () => {
     const navigate = useNavigate();
-    const [events, setEvents] = useState<EventRecord[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [events, setEvents] = useState<EventRecord[]>(() => cache.events ?? []);
+    const [loading, setLoading] = useState(() => !isEventsCacheFresh());
     const [error, setError] = useState('');
 
     const upcomingRef = useScrollReveal<HTMLDivElement>(0.1);
     const pastRef = useScrollReveal<HTMLDivElement>(0.1);
 
     useEffect(() => {
+        // If the SiteLoader already prefetched a fresh list, skip the network call.
+        if (isEventsCacheFresh()) {
+            setEvents(cache.events!);
+            setLoading(false);
+            return;
+        }
         const fetchEvents = async () => {
             try {
                 setLoading(true);
                 const data = await api.getEvents();
                 setEvents(data);
+                setEventsCache(data);
                 setError('');
             } catch (err) {
                 console.error('Error fetching events:', err);
@@ -162,7 +171,8 @@ const Events = () => {
     return (
         <main className="pt-24 pb-20 scene-3d">
             {/* ─── HERO ────────────────────────────────────────────────────── */}
-            <section className="max-w-7xl mx-auto py-16 md:py-24 text-center relative overflow-hidden px-6 md:px-12">
+            <section className="max-w-7xl mx-auto py-16 md:py-24 text-center relative overflow-hidden px-6 md:px-12 min-h-[70vh] flex flex-col justify-center">
+                <EventsBackdrop />
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute top-[-20%] left-[-5%] w-[40%] h-[80%] rounded-full opacity-15 float-y-slow" style={{ background: 'radial-gradient(circle, var(--cy), transparent 70%)', filter: 'blur(80px)' }} />
                     <div className="absolute bottom-[-20%] right-[-5%] w-[35%] h-[80%] rounded-full opacity-10 float-y" style={{ background: 'radial-gradient(circle, var(--am), transparent 70%)', filter: 'blur(80px)' }} />

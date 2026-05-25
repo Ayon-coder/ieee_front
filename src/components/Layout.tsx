@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import ChatbotWidget from './ChatbotWidget';
+import ChatLauncher from './ChatLauncher';
+import CustomCursor from './CustomCursor';
 
 const Layout = () => {
     const bgRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,8 @@ const Layout = () => {
                 <Footer />
             </div>
 
-            <ChatbotWidget />
+            <ChatLauncher />
+            <CustomCursor />
         </div>
     );
 };

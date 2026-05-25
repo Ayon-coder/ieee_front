@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { api } from '../lib/api';
 import type { EventRecord, ParticipantRecord } from '../lib/api';
+import { CertificateBackdrop } from '../components/PageBackdrops';
 
 type EventData = EventRecord;
 type StudentData = ParticipantRecord;
@@ -290,8 +291,11 @@ const CertificateSearch = () => {
   }
 
   return (
-    <main className="pt-24 pb-20 px-12">
-      <section className="max-w-7xl mx-auto mb-8">
+    <main className="pt-24 pb-20 px-12 relative overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <CertificateBackdrop />
+      </div>
+      <section className="max-w-7xl mx-auto mb-8 relative">
         <button
           type="button"
           onClick={() => navigate('/events')}

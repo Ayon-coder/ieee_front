@@ -1,5 +1,27 @@
+import { EventDetailsBackdrop } from '../components/PageBackdrops';
+import { useScrollReveal, useTilt3D } from '../lib/use3d';
+
+const SpeakerCard = ({ name, role, src }: { name: string; role: string; src: string }) => {
+    const { bind } = useTilt3D({ max: 6 });
+    return (
+        <div className="glass-card tilt-3d p-4 flex items-center gap-4 group transition-transform" {...bind}>
+            <div className="tilt-layer flex items-center gap-4" style={{ '--z': '16px' } as React.CSSProperties}>
+                <img alt={name} className="w-14 h-14 object-cover flex-shrink-0 grayscale group-hover:grayscale-0 transition-all" src={src} />
+                <div>
+                    <h4 className="font-headline font-bold text-on-surface text-sm">{name}</h4>
+                    <p className="font-mono-ieee text-[10px] tracking-[0.12em] uppercase text-primary mt-0.5">{role}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const EventDetails = () => {
+    const aboutRef = useScrollReveal<HTMLElement>(0.15);
+    const scheduleRef = useScrollReveal<HTMLElement>(0.15);
+    const speakersRef = useScrollReveal<HTMLElement>(0.15);
+    const testimonialTilt = useTilt3D({ max: 6 });
+
     const speakers = [
         { name: 'Dr. Elena Kostic', role: 'Quantum Research Lead', src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBYVLNmIrrJGgqCFjA7mYn4c5msUiO-vVC37WD9pXKIUetqh-GVjmd0GRtnS3pJmEuOAuEZ-yb12TrkgVPQvyJ243uE9AYY04T68Zih62W9Oxtt2yXPqnvlgVGlFfwnHJBQpXaIyPCbQiebKL5Q8b71tf8xwVDx42oo9R7KzYe7eW8eXVPQAV69Pz5hPrKN7qswTYAwfSsoFD4r1oBXlGTGVXwAtkvuibQJFyYEwMZuq33yrotmCS5AL95j4JK3vMOtO-ssjIjAvm0-' },
         { name: 'Marcus Chen', role: 'Senior AI Engineer', src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCLVxqbB75ZR_gI7gvQ-JBBoZjlRdNo6dHChr6wBX748yEsXdEhgz3BQwZugnCFlbaYRMQga6mR25kFIpElLgb4HN5d9lqUQYMIGOwozjLJZQ-B_qfqLp-Ud3mohADr9yvKIHnSX0NnVMJS6NJe1A-d4AOvxxatptRKzY4D9MscOB2Sdx0DQib_CsBPPKPw3QCFugIePYM8WnulM7kvI3WUUfjrPhOufeZLZ3s_ZMiWCi_BVSkeY-MNI37anZkdYaoQG2AkVTXK-rD3' },
@@ -14,11 +36,15 @@ const EventDetails = () => {
     ];
 
     return (
-        <main className="max-w-7xl mx-auto py-28 grid grid-cols-1 lg:grid-cols-12 gap-14 px-6 md:px-12">
+        <main className="relative overflow-hidden scene-3d">
+            <div className="absolute inset-0 -z-10">
+                <EventDetailsBackdrop />
+            </div>
+            <div className="max-w-7xl mx-auto py-28 grid grid-cols-1 lg:grid-cols-12 gap-14 px-6 md:px-12 relative">
             {/* ─── Left Column ─────────────────────────────────────────────── */}
             <div className="lg:col-span-8 space-y-20">
                 {/* About */}
-                <section>
+                <section ref={aboutRef} className="reveal">
                     <div className="flex items-center gap-3 mb-8">
                         <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase text-primary">01 /</span>
                         <h2 className="font-headline text-3xl font-bold text-on-surface">About the Event</h2>
@@ -30,7 +56,7 @@ const EventDetails = () => {
                 </section>
 
                 {/* Timeline */}
-                <section>
+                <section ref={scheduleRef} className="reveal-stagger">
                     <div className="flex items-center gap-3 mb-12">
                         <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase text-primary">02 /</span>
                         <h2 className="font-headline text-3xl font-bold text-on-surface">Event Schedule</h2>
@@ -57,26 +83,21 @@ const EventDetails = () => {
             {/* ─── Right Column ────────────────────────────────────────────── */}
             <div className="lg:col-span-4 space-y-12">
                 {/* Speakers */}
-                <section>
+                <section ref={speakersRef} className="reveal-stagger">
                     <div className="flex items-center gap-3 mb-8">
                         <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase text-primary">03 /</span>
                         <h2 className="font-headline text-xl font-bold text-on-surface">Speakers</h2>
                     </div>
                     <div className="space-y-4">
-                        {speakers.map(({ name, role, src }) => (
-                            <div key={name} className="glass-card p-4 flex items-center gap-4 group hover:translate-x-1 transition-transform">
-                                <img alt={name} className="w-14 h-14 object-cover flex-shrink-0 grayscale group-hover:grayscale-0 transition-all" src={src} />
-                                <div>
-                                    <h4 className="font-headline font-bold text-on-surface text-sm">{name}</h4>
-                                    <p className="font-mono-ieee text-[10px] tracking-[0.12em] uppercase text-primary mt-0.5">{role}</p>
-                                </div>
-                            </div>
+                        {speakers.map((s) => (
+                            <SpeakerCard key={s.name} {...s} />
                         ))}
                     </div>
                 </section>
 
                 {/* Testimonial */}
-                <section className="corner-accent p-7 relative" style={{ background: 'var(--bg-panel)', border: '1px solid var(--line)' }}>
+                <section className="corner-accent holo-edge tilt-3d depth-card p-7 relative" {...testimonialTilt.bind}>
+                    <div className="tilt-layer" style={{ '--z': '24px' } as React.CSSProperties}>
                     <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
                     <span className="material-symbols-outlined text-primary mb-4 block" style={{ fontVariationSettings: "'FILL' 1" }}>format_quote</span>
                     <p className="text-on-surface italic leading-relaxed mb-6 text-sm">
@@ -89,7 +110,9 @@ const EventDetails = () => {
                             <p className="font-mono-ieee text-[9px] tracking-widest uppercase" style={{ color: 'var(--txt-3)' }}>Computer Science Senior</p>
                         </div>
                     </div>
+                    </div>
                 </section>
+            </div>
             </div>
         </main>
     );

@@ -1,7 +1,15 @@
+import { ContactBackdrop } from '../components/PageBackdrops';
+import { useScrollReveal, useTilt3D } from '../lib/use3d';
 
 const Contact = () => {
+    const formTilt = useTilt3D<HTMLDivElement>({ max: 5 });
+    const infoRef = useScrollReveal<HTMLDivElement>(0.15);
+    const formRef = useScrollReveal<HTMLDivElement>(0.15);
     return (
-        <main className="min-h-screen pt-28 pb-20 px-6 md:px-14 relative overflow-hidden">
+        <main className="min-h-screen pt-28 pb-20 px-6 md:px-14 relative overflow-hidden scene-3d">
+            <div className="absolute inset-0 -z-10">
+                <ContactBackdrop />
+            </div>
             {/* Ambient glows */}
             <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.06), transparent 70%)', filter: 'blur(80px)' }} />
             <div className="absolute bottom-[-10%] left-[-5%] w-[350px] h-[350px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.05), transparent 70%)', filter: 'blur(80px)' }} />
@@ -20,7 +28,7 @@ const Contact = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 items-start">
                     {/* Left: Contact Info */}
-                    <div className="lg:col-span-5 space-y-10">
+                    <div ref={infoRef} className="reveal-stagger lg:col-span-5 space-y-10">
                         <div className="space-y-6">
                             {[
                                 { icon: 'mail', title: 'Email Us', sub: 'General Inquiries', value: 'contact@ieeesbaot.org', href: 'mailto:contact@ieeesbaot.org', isLink: true },
@@ -82,8 +90,9 @@ const Contact = () => {
                     </div>
 
                     {/* Right: Contact Form */}
-                    <div className="lg:col-span-7">
-                        <div className="corner-accent p-8 md:p-12 relative" style={{ background: 'var(--bg-panel)', border: '1px solid var(--line)' }}>
+                    <div ref={formRef} className="reveal lg:col-span-7">
+                        <div className="corner-accent holo-edge tilt-3d depth-card p-8 md:p-12 relative" {...formTilt.bind}>
+                            <div className="tilt-layer" style={{ '--z': '28px' } as React.CSSProperties}>
                             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
 
                             <div className="mb-10">
@@ -149,6 +158,7 @@ const Contact = () => {
                                     </button>
                                 </div>
                             </form>
+                            </div>
                         </div>
                     </div>
                 </div>

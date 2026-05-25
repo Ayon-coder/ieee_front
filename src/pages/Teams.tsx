@@ -1,3 +1,77 @@
+import { TeamsBackdrop } from '../components/PageBackdrops';
+import { useTilt3D, useScrollReveal } from '../lib/use3d';
+
+type Member = { name: string; role: string; src: string; icons: string[] };
+
+const ExecCard = ({ m }: { m: Member }) => {
+    const { bind } = useTilt3D({ max: 9 });
+    return (
+        <div className="glass-card holo-edge tilt-3d overflow-hidden group transition-all duration-300 relative" {...bind}>
+            <div className="tilt-layer" style={{ '--z': '22px' } as React.CSSProperties}>
+                <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
+                <div className="relative aspect-square overflow-hidden">
+                    <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108" src={m.src} alt={m.name} style={{ transition: 'transform 0.5s ease' }} />
+                    <div className="member-overlay absolute inset-0 flex items-center justify-center gap-4" style={{ background: 'rgba(5,7,13,0.7)', backdropFilter: 'blur(8px)' }}>
+                        {m.icons.map((icon) => (
+                            <a key={icon} className="w-10 h-10 flex items-center justify-center text-primary hover:text-on-primary transition-all" style={{ border: '1px solid var(--line-cy)', background: 'transparent' }} onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'var(--cy)'; el.style.color = 'var(--bg-0)'; }} onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = 'var(--cy)'; }} href="#">
+                                <span className="material-symbols-outlined text-xl">{icon}</span>
+                            </a>
+                        ))}
+                    </div>
+                </div>
+                <div className="p-6" style={{ borderTop: '1px solid var(--line)' }}>
+                    <h3 className="font-headline text-lg font-bold text-on-surface mb-1">{m.name}</h3>
+                    <p className="font-mono-ieee text-[10px] tracking-[0.15em] uppercase text-primary">{m.role}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const TechCard = ({ m }: { m: Member }) => {
+    const { bind } = useTilt3D({ max: 6 });
+    return (
+        <div className="glass-card tilt-3d overflow-hidden group relative" {...bind}>
+            <div className="tilt-layer" style={{ '--z': '18px' } as React.CSSProperties}>
+                <div className="relative aspect-[3/4] overflow-hidden">
+                    <img className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" src={m.src} alt={m.name} />
+                    <div className="member-overlay absolute bottom-0 left-0 right-0 p-3 flex justify-center gap-3" style={{ background: 'linear-gradient(to top, rgba(5,7,13,0.9), transparent)' }}>
+                        {m.icons.map((icon) => (
+                            <span key={icon} className="material-symbols-outlined text-primary" style={{ fontSize: '18px' }}>{icon}</span>
+                        ))}
+                    </div>
+                </div>
+                <div className="p-4" style={{ background: 'rgba(12,17,28,0.5)', borderTop: '1px solid var(--line)' }}>
+                    <h4 className="font-headline font-bold text-sm text-on-surface truncate">{m.name}</h4>
+                    <p className="font-mono-ieee text-[9px] tracking-[0.15em] uppercase mt-0.5" style={{ color: 'var(--txt-3)' }}>{m.role}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CreativeCard = ({ m }: { m: Member }) => {
+    const { bind } = useTilt3D({ max: 6 });
+    return (
+        <div className="glass-card tilt-3d flex items-center p-4 gap-5 group transition-transform" {...bind}>
+            <div className="tilt-layer flex items-center gap-5" style={{ '--z': '14px' } as React.CSSProperties}>
+                <div className="w-20 h-20 overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--line)' }}>
+                    <img className="w-full h-full object-cover" src={m.src} alt={m.name} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-headline font-bold text-base text-on-surface">{m.name}</h4>
+                    <p className="font-mono-ieee text-[10px] tracking-[0.12em] uppercase text-secondary mb-3">{m.role}</p>
+                    <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {m.icons.map((icon) => (
+                            <span key={icon} className="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors" style={{ fontSize: '18px' }}>{icon}</span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const execMembers = [
     {
         name: 'Arjun Mehta', role: 'Chairperson',
@@ -41,8 +115,16 @@ const SectionLabel = ({ code, label, align = 'center' }: { code: string; label: 
 );
 
 const Teams = () => {
+    const execRevealRef = useScrollReveal<HTMLElement>(0.12);
+    const techRevealRef = useScrollReveal<HTMLElement>(0.12);
+    const creativeRevealRef = useScrollReveal<HTMLElement>(0.12);
+
     return (
-        <main className="pt-28 pb-24 min-h-screen max-w-7xl mx-auto px-6 md:px-12">
+        <main className="pt-28 pb-24 min-h-screen relative overflow-hidden scene-3d">
+            <div className="absolute inset-0 -z-10">
+                <TeamsBackdrop />
+            </div>
+            <div className="max-w-7xl mx-auto px-6 md:px-12">
             {/* Header */}
             <header className="mb-20 text-center md:text-left">
                 <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary block mb-4">Team / Members</span>
@@ -55,85 +137,43 @@ const Teams = () => {
             </header>
 
             {/* ─── Executive Core ────────────────────────────────────────── */}
-            <section className="mb-24">
+            <section ref={execRevealRef} className="reveal-stagger mb-24">
                 <SectionLabel code="01 /" label="Executive Core" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {execMembers.map(({ name, role, src, icons }) => (
-                        <div key={name} className="glass-card overflow-hidden group transition-all duration-300 hover:translate-y-[-4px] relative">
-                            {/* Top accent */}
-                            <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
-                            <div className="relative aspect-square overflow-hidden">
-                                <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108" src={src} alt={name} style={{ transition: 'transform 0.5s ease' }} />
-                                <div className="member-overlay absolute inset-0 flex items-center justify-center gap-4" style={{ background: 'rgba(5,7,13,0.7)', backdropFilter: 'blur(8px)' }}>
-                                    {icons.map(icon => (
-                                        <a key={icon} className="w-10 h-10 flex items-center justify-center text-primary hover:text-on-primary transition-all" style={{ border: '1px solid var(--line-cy)', background: 'transparent' }} onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'var(--cy)'; el.style.color = 'var(--bg-0)'; }} onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = 'var(--cy)'; }} href="#">
-                                            <span className="material-symbols-outlined text-xl">{icon}</span>
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="p-6" style={{ borderTop: '1px solid var(--line)' }}>
-                                <h3 className="font-headline text-lg font-bold text-on-surface mb-1">{name}</h3>
-                                <p className="font-mono-ieee text-[10px] tracking-[0.15em] uppercase text-primary">{role}</p>
-                            </div>
-                        </div>
+                    {execMembers.map((m) => (
+                        <ExecCard key={m.name} m={m} />
                     ))}
                 </div>
             </section>
 
             {/* ─── Technical Operations ──────────────────────────────────── */}
-            <section className="mb-24">
+            <section ref={techRevealRef} className="reveal-stagger mb-24">
                 <div className="flex items-center gap-4 mb-12">
                     <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, var(--line))' }} />
                     <span className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase" style={{ color: 'var(--txt-3)' }}>02 /</span>
                     <h2 className="font-headline text-xl font-bold text-primary uppercase tracking-tight">Technical Operations</h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                    {techMembers.map(({ name, role, icons, src }) => (
-                        <div key={name} className="glass-card overflow-hidden group relative">
-                            <div className="relative aspect-[3/4] overflow-hidden">
-                                <img className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" src={src} alt={name} />
-                                <div className="member-overlay absolute bottom-0 left-0 right-0 p-3 flex justify-center gap-3" style={{ background: 'linear-gradient(to top, rgba(5,7,13,0.9), transparent)' }}>
-                                    {icons.map(icon => (
-                                        <span key={icon} className="material-symbols-outlined text-primary" style={{ fontSize: '18px' }}>{icon}</span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="p-4" style={{ background: 'rgba(12,17,28,0.5)', borderTop: '1px solid var(--line)' }}>
-                                <h4 className="font-headline font-bold text-sm text-on-surface truncate">{name}</h4>
-                                <p className="font-mono-ieee text-[9px] tracking-[0.15em] uppercase mt-0.5" style={{ color: 'var(--txt-3)' }}>{role}</p>
-                            </div>
-                        </div>
+                    {techMembers.map((m) => (
+                        <TechCard key={m.name} m={m} />
                     ))}
                 </div>
             </section>
 
             {/* ─── Creative Collective ───────────────────────────────────── */}
-            <section className="mb-24">
+            <section ref={creativeRevealRef} className="reveal-stagger mb-24">
                 <div className="flex items-center gap-4 mb-12 flex-row-reverse">
                     <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, var(--line))' }} />
                     <span className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase" style={{ color: 'var(--txt-3)' }}>03 /</span>
                     <h2 className="font-headline text-xl font-bold text-secondary uppercase tracking-tight">Creative Collective</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {creativeMembers.map(({ name, role, icons, src }) => (
-                        <div key={name} className="glass-card flex items-center p-4 gap-5 group hover:translate-y-[-3px] transition-transform">
-                            <div className="w-20 h-20 overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--line)' }}>
-                                <img className="w-full h-full object-cover" src={src} alt={name} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-headline font-bold text-base text-on-surface">{name}</h4>
-                                <p className="font-mono-ieee text-[10px] tracking-[0.12em] uppercase text-secondary mb-3">{role}</p>
-                                <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {icons.map(icon => (
-                                        <span key={icon} className="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors" style={{ fontSize: '18px' }}>{icon}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                    {creativeMembers.map((m) => (
+                        <CreativeCard key={m.name} m={m} />
                     ))}
                 </div>
             </section>
+            </div>
         </main>
     );
 };

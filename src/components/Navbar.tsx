@@ -45,6 +45,7 @@ const Navbar = () => {
                     <NavLink end className={navLinkClass} to="/">Home</NavLink>
                     <NavLink className={navLinkClass} to="/events">Events</NavLink>
                     <NavLink className={navLinkClass} to="/teams">Team</NavLink>
+                    <NavLink className={navLinkClass} to="/chat">Chat</NavLink>
                     <NavLink className={navLinkClass} to="/contact">Contact</NavLink>
                 </div>
 
@@ -80,6 +81,7 @@ const Navbar = () => {
                         <NavLink end className={navLinkClass} to="/" onClick={() => setMobileOpen(false)}>Home</NavLink>
                         <NavLink className={navLinkClass} to="/events" onClick={() => setMobileOpen(false)}>Events</NavLink>
                         <NavLink className={navLinkClass} to="/teams" onClick={() => setMobileOpen(false)}>Team</NavLink>
+                        <NavLink className={navLinkClass} to="/chat" onClick={() => setMobileOpen(false)}>Chat</NavLink>
                         <NavLink className={navLinkClass} to="/contact" onClick={() => setMobileOpen(false)}>Contact</NavLink>
                         <button className="btn-gradient w-full py-3 text-[10px] tracking-[0.15em] uppercase font-bold mt-1">
                             Join Us
