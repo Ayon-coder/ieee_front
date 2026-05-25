@@ -44,6 +44,8 @@
     background: var(--bg-0);
     overflow: hidden;
     pointer-events: none;
+    --mx: 50vw;
+    --my: 50vh;
 }
 .site-bg__grid {
     position: absolute; inset: 0;
@@ -63,11 +65,12 @@
 .site-bg__glow {
     position: absolute;
     width: 70vw; height: 70vw;
-    top: var(--my, 50%); left: var(--mx, 50%);
-    transform: translate(-50%, -50%);
+    top: 0; left: 0;
+    transform: translate3d(var(--mx), var(--my), 0) translate(-50%, -50%);
     background: radial-gradient(circle, rgba(0, 229, 255, 0.1), transparent 60%);
     filter: blur(90px);
-    transition: top 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
 }
 .site-bg__scan {
     position: absolute; inset: 0;
@@ -249,11 +252,286 @@ body {
     .font-display-ieee { font-family: var(--font-display); }
 }
 
+/* ─── 3D PERSPECTIVE / TILT ──────────────────────────────────────────────── */
+.scene-3d { perspective: 1200px; transform-style: preserve-3d; }
+.tilt-3d {
+    transform-style: preserve-3d;
+    transform:
+        perspective(1000px)
+        rotateX(var(--ry, 0deg))
+        rotateY(var(--rx, 0deg))
+        translateZ(0);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+    will-change: transform;
+}
+.tilt-3d > .tilt-layer { transform: translateZ(var(--z, 30px)); transform-style: preserve-3d; }
+.tilt-3d::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(
+        circle at var(--mx, 50%) var(--my, 50%),
+        rgba(0, 229, 255, 0.18),
+        transparent 45%
+    );
+    opacity: var(--shine, 0);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+    mix-blend-mode: screen;
+}
+.tilt-3d:hover { box-shadow: 0 24px 48px -16px rgba(0, 229, 255, 0.18), 0 8px 24px -8px rgba(0, 0, 0, 0.6); }
+
+/* ─── HOLOGRAPHIC SHIMMER ────────────────────────────────────────────────── */
+@property --holo-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+.holo-edge {
+    position: relative;
+    isolation: isolate;
+}
+.holo-edge::after {
+    content: '';
+    position: absolute; inset: 0;
+    padding: 1px;
+    background: conic-gradient(
+        from var(--holo-angle, 0deg),
+        transparent 0deg,
+        var(--cy) 60deg,
+        transparent 120deg,
+        transparent 240deg,
+        var(--am) 300deg,
+        transparent 360deg
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+    animation: ieee-holo-rotate 6s linear infinite;
+    z-index: 1;
+}
+.holo-edge:hover::after { opacity: 0.9; }
+@keyframes ieee-holo-rotate {
+    to { --holo-angle: 360deg; }
+}
+
+/* ─── 3D WIREFRAME SHAPE ─────────────────────────────────────────────────── */
+.wire-stage {
+    position: relative;
+    width: 100%; height: 100%;
+    perspective: 1400px;
+    transform-style: preserve-3d;
+}
+.wire-shape {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 320px; height: 320px;
+    transform-style: preserve-3d;
+    animation: ieee-wire-spin 28s linear infinite;
+}
+.wire-face {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--line-cy);
+    background:
+        linear-gradient(135deg, rgba(0, 229, 255, 0.04), transparent 70%),
+        radial-gradient(circle at 30% 30%, rgba(0, 229, 255, 0.08), transparent 60%);
+    box-shadow:
+        inset 0 0 24px rgba(0, 229, 255, 0.08),
+        0 0 40px rgba(0, 229, 255, 0.06);
+}
+.wire-face::before,
+.wire-face::after {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+    border-color: var(--cy);
+    border-style: solid;
+    border-width: 0;
+}
+.wire-face::before { top: -1px; left: -1px; border-top-width: 1px; border-left-width: 1px; }
+.wire-face::after  { bottom: -1px; right: -1px; border-bottom-width: 1px; border-right-width: 1px; }
+.wire-face.f1 { transform: translateZ(160px); }
+.wire-face.f2 { transform: rotateY(180deg) translateZ(160px); }
+.wire-face.f3 { transform: rotateY( 90deg) translateZ(160px); }
+.wire-face.f4 { transform: rotateY(-90deg) translateZ(160px); }
+.wire-face.f5 { transform: rotateX( 90deg) translateZ(160px); }
+.wire-face.f6 { transform: rotateX(-90deg) translateZ(160px); }
+.wire-core {
+    position: absolute; inset: 0; margin: auto;
+    width: 140px; height: 140px;
+    transform-style: preserve-3d;
+    animation: ieee-wire-spin-rev 18s linear infinite;
+}
+.wire-core .wire-face { border-color: rgba(255, 184, 77, 0.45); }
+.wire-core .wire-face::before,
+.wire-core .wire-face::after { border-color: var(--am); }
+.wire-core .f1 { transform: translateZ(70px); }
+.wire-core .f2 { transform: rotateY(180deg) translateZ(70px); }
+.wire-core .f3 { transform: rotateY( 90deg) translateZ(70px); }
+.wire-core .f4 { transform: rotateY(-90deg) translateZ(70px); }
+.wire-core .f5 { transform: rotateX( 90deg) translateZ(70px); }
+.wire-core .f6 { transform: rotateX(-90deg) translateZ(70px); }
+
+.wire-ring {
+    position: absolute; inset: 0; margin: auto;
+    width: 460px; height: 460px;
+    border: 1px dashed rgba(0, 229, 255, 0.18);
+    border-radius: 50%;
+    transform-style: preserve-3d;
+    animation: ieee-ring-spin 40s linear infinite;
+}
+.wire-ring.r2 {
+    width: 560px; height: 560px;
+    border-style: dotted;
+    border-color: rgba(255, 184, 77, 0.18);
+    animation-duration: 60s;
+    animation-direction: reverse;
+}
+
+@keyframes ieee-wire-spin {
+    0%   { transform: rotateX(-18deg) rotateY(0deg)   rotateZ(0deg); }
+    100% { transform: rotateX(-18deg) rotateY(360deg) rotateZ(0deg); }
+}
+@keyframes ieee-wire-spin-rev {
+    0%   { transform: rotateX(28deg) rotateY(360deg) rotateZ(0deg); }
+    100% { transform: rotateX(28deg) rotateY(0deg)   rotateZ(360deg); }
+}
+@keyframes ieee-ring-spin {
+    0%   { transform: rotateX(70deg) rotateZ(0deg); }
+    100% { transform: rotateX(70deg) rotateZ(360deg); }
+}
+
+/* ─── FLOATING / ORBIT MOTION ────────────────────────────────────────────── */
+.float-y { animation: ieee-float-y 8s ease-in-out infinite; }
+.float-y-slow { animation: ieee-float-y 14s ease-in-out infinite; }
+@keyframes ieee-float-y {
+    0%, 100% { transform: translateY(0) translateZ(0); }
+    50%      { transform: translateY(-14px) translateZ(0); }
+}
+
+.orbit-dot {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cy);
+    box-shadow: 0 0 12px var(--cy);
+    transform-origin: 0 0;
+    animation: ieee-orbit 16s linear infinite;
+}
+.orbit-dot.amber { background: var(--am); box-shadow: 0 0 12px var(--am); animation-duration: 22s; }
+@keyframes ieee-orbit {
+    0%   { transform: rotate(0deg)   translateX(220px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(220px) rotate(-360deg); }
+}
+
+/* ─── SCROLL REVEAL ──────────────────────────────────────────────────────── */
+.reveal {
+    opacity: 0;
+    transform: translateY(28px) translateZ(0);
+    transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+}
+.reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-stagger.is-visible > *              { opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 60ms;  }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 160ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 260ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 360ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 460ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 560ms; }
+
+/* ─── DEPTH CARD ─────────────────────────────────────────────────────────── */
+.depth-card {
+    position: relative;
+    transform-style: preserve-3d;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.4s ease;
+}
+.depth-card .depth-layer-2 { transform: translateZ(24px); }
+.depth-card .depth-layer-3 { transform: translateZ(48px); }
+.depth-card:hover {
+    border-color: var(--line-cy);
+    box-shadow:
+        0 30px 60px -20px rgba(0, 0, 0, 0.7),
+        0 18px 38px -12px rgba(0, 229, 255, 0.18);
+}
+
+/* ─── PARTICLE CANVAS ────────────────────────────────────────────────────── */
+.particle-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+}
+
+/* ─── 3D STAT TILE ───────────────────────────────────────────────────────── */
+.stat-3d {
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.4s ease;
+}
+.stat-3d::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, var(--cy), transparent 40%, transparent 60%, var(--am));
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: -1;
+    filter: blur(12px);
+}
+.stat-3d:hover::before { opacity: 0.35; }
+.stat-3d:hover {
+    transform: translateY(-4px) rotateX(4deg) translateZ(0);
+    border-color: var(--line-cy);
+    box-shadow: 0 22px 40px -18px rgba(0, 229, 255, 0.25);
+}
+
+/* ─── SCROLL PROGRESS ────────────────────────────────────────────────────── */
+.scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--p, 0%);
+    height: 2px;
+    background: linear-gradient(to right, var(--cy), var(--am));
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+    z-index: 100;
+    transition: width 0.05s linear;
+}
+
+.parallax-layer {
+    will-change: transform;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-    .site-bg__scan, .site-bg__glow { display: none; }
+    .site-bg__scan, .site-bg__glow,
+    .wire-shape, .wire-core, .wire-ring,
+    .float-y, .float-y-slow, .orbit-dot,
+    .holo-edge::after { display: none; }
+    .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
 }

@@ -1,29 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ChatbotWidget from './ChatbotWidget';
 
 const Layout = () => {
-    const [cursorPos, setCursorPos] = useState({ x: 50, y: 50 });
+    const bgRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleMove = (e: PointerEvent) => {
-            setCursorPos({
-                x: (e.clientX / window.innerWidth) * 100,
-                y: (e.clientY / window.innerHeight) * 100,
-            });
+        let raf = 0;
+        let pendingX = 0;
+        let pendingY = 0;
+
+        const apply = () => {
+            raf = 0;
+            const el = bgRef.current;
+            if (!el) return;
+            el.style.setProperty('--mx', `${pendingX}px`);
+            el.style.setProperty('--my', `${pendingY}px`);
         };
-        window.addEventListener('pointermove', handleMove);
-        return () => window.removeEventListener('pointermove', handleMove);
+
+        const handleMove = (e: PointerEvent) => {
+            pendingX = e.clientX;
+            pendingY = e.clientY;
+            if (!raf) raf = requestAnimationFrame(apply);
+        };
+
+        window.addEventListener('pointermove', handleMove, { passive: true });
+        return () => {
+            window.removeEventListener('pointermove', handleMove);
+            if (raf) cancelAnimationFrame(raf);
+        };
     }, []);
 
     return (
         <div className="flex flex-col min-h-screen font-body dark relative" style={{ background: 'var(--bg-0)', color: 'var(--txt)' }}>
-            <div
-                className="site-bg"
-                style={{ '--mx': `${cursorPos.x}%`, '--my': `${cursorPos.y}%` } as React.CSSProperties}
-                aria-hidden="true"
-            >
+            <div className="site-bg" ref={bgRef} aria-hidden="true">
                 <div className="site-bg__grid" />
                 <div className="site-bg__noise" />
                 <div className="site-bg__glow" />
@@ -37,6 +49,8 @@ const Layout = () => {
                 </div>
                 <Footer />
             </div>
+
+            <ChatbotWidget />
         </div>
     );
 };

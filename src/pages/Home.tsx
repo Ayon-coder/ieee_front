@@ -1,14 +1,120 @@
+import { useEffect, useRef } from 'react';
+import Hero3D from '../components/Hero3D';
+import { useCountUp, useScrollReveal, useTilt3D, useParallax, useScrollProgress } from '../lib/use3d';
+
+/* ─── Animated count-up stat tile ─────────────────────────────────────── */
+const StatTile = ({
+    value,
+    suffix,
+    label,
+    accent,
+}: {
+    value: number;
+    suffix: string;
+    label: string;
+    accent: string;
+}) => {
+    const [n, ref] = useCountUp<HTMLDivElement>(value, 1600);
+    const { bind } = useTilt3D({ max: 8 });
+
+    return (
+        <div
+            ref={ref}
+            className="stat-3d corner-accent tilt-3d p-8 text-center relative"
+            style={{ background: 'rgba(13,19,32,0.6)', border: '1px solid var(--line)' }}
+            {...bind}
+        >
+            <div className="tilt-layer" style={{ '--z': '24px' } as React.CSSProperties}>
+                <div className="font-headline text-5xl md:text-6xl font-extrabold mb-2 tabular-nums" style={{ color: accent }}>
+                    {n}
+                    <span>{suffix}</span>
+                </div>
+                <div className="font-mono-ieee text-[11px] tracking-[0.2em] uppercase" style={{ color: 'var(--txt-3)' }}>
+                    {label}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/* ─── 3D-tilt panel for Mission / Vision ──────────────────────────────── */
+const InfoPanel = ({
+    num,
+    title,
+    body,
+    accent,
+}: {
+    num: string;
+    title: string;
+    body: string;
+    accent: 'primary' | 'tertiary';
+}) => {
+    const { bind } = useTilt3D({ max: 7 });
+    const colorClass = accent === 'primary' ? 'text-primary' : 'text-tertiary';
+    return (
+        <div
+            className="corner-accent holo-edge tilt-3d depth-card p-10 flex flex-col justify-center relative"
+            {...bind}
+        >
+            <div className="tilt-layer relative" style={{ '--z': '30px' } as React.CSSProperties}>
+                <div className="inline-flex items-center gap-2 mb-6">
+                    <span className={`font-mono-ieee text-[10px] tracking-[0.2em] uppercase ${colorClass}`}>{num} /</span>
+                    <h2 className={`font-headline text-2xl font-bold ${colorClass}`}>{title}</h2>
+                </div>
+                <p className="leading-relaxed text-lg" style={{ color: 'var(--txt-2)' }}>
+                    {body}
+                </p>
+            </div>
+        </div>
+    );
+};
+
 const Home = () => {
+    const progress = useScrollProgress();
+
+    /* Section reveal refs */
+    const statsRef = useScrollReveal<HTMLDivElement>(0.2);
+    const mvRef = useScrollReveal<HTMLDivElement>(0.15);
+    const advisorRef = useScrollReveal<HTMLDivElement>(0.2);
+    const partnersRef = useScrollReveal<HTMLDivElement>(0.2);
+    const faqRef = useScrollReveal<HTMLDivElement>(0.2);
+
+    /* Parallax for hero text — slight upward drift on scroll */
+    const heroTextRef = useParallax<HTMLDivElement>(-0.08);
+
+    /* Faculty image parallax */
+    const advisorImgRef = useParallax<HTMLDivElement>(0.05);
+
+    /* 3D tilt for faculty panel + hero badge */
+    const advisorTilt = useTilt3D<HTMLDivElement>({ max: 6 });
+
+    /* Make sure the in-view check for above-the-fold runs immediately */
+    useEffect(() => {
+        const node = document.querySelector('[data-hero-reveal]') as HTMLElement | null;
+        if (node) requestAnimationFrame(() => node.classList.add('is-visible'));
+    }, []);
+
     return (
         <main>
-            {/* ─── HERO ────────────────────────────────────────────────────────── */}
-            <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-                <div className="absolute inset-0 hero-gradient pointer-events-none" />
-                {/* Ambient blobs */}
-                <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.07), transparent 70%)', filter: 'blur(60px)' }} />
-                <div className="absolute bottom-1/4 -right-32 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.05), transparent 70%)', filter: 'blur(60px)' }} />
+            {/* Scroll progress bar */}
+            <div className="scroll-progress" style={{ ['--p' as string]: `${(progress * 100).toFixed(2)}%` } as React.CSSProperties} />
 
-                <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-14 text-center">
+            {/* ─── HERO ────────────────────────────────────────────────────────── */}
+            <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden scene-3d">
+                <div className="absolute inset-0 hero-gradient pointer-events-none" />
+
+                {/* 3D wireframe + particle backdrop */}
+                <Hero3D />
+
+                {/* Ambient blobs (kept from original) */}
+                <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] rounded-full pointer-events-none float-y-slow" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.07), transparent 70%)', filter: 'blur(60px)' }} />
+                <div className="absolute bottom-1/4 -right-32 w-[400px] h-[400px] rounded-full pointer-events-none float-y" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.05), transparent 70%)', filter: 'blur(60px)' }} />
+
+                <div
+                    ref={heroTextRef}
+                    data-hero-reveal
+                    className="reveal-stagger relative z-10 max-w-5xl mx-auto px-6 md:px-14 text-center parallax-layer"
+                >
                     {/* Badge */}
                     <div className="inline-flex items-center gap-2.5 px-4 py-2 mb-10" style={{ border: '1px solid rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.05)' }}>
                         <div className="status-dot" />
@@ -39,72 +145,61 @@ const Home = () => {
                         <div className="h-px flex-1 max-w-[120px]" style={{ background: 'linear-gradient(to left, transparent, var(--cy))' }} />
                     </div>
                 </div>
+
+                {/* Scroll-cue */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10 pointer-events-none">
+                    <span className="font-mono-ieee text-[9px] tracking-[0.3em] uppercase" style={{ color: 'var(--txt-3)' }}>Scroll</span>
+                    <div className="w-px h-10 float-y" style={{ background: 'linear-gradient(to bottom, var(--cy), transparent)' }} />
+                </div>
             </section>
 
             {/* ─── STATS ───────────────────────────────────────────────────────── */}
-            <section className="py-20 relative z-10">
-                <div className="max-w-7xl mx-auto px-6 md:px-14">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { value: '500+', label: 'Active Members', accent: 'var(--cy)' },
-                            { value: '40+',  label: 'Events Organized', accent: 'var(--am)' },
-                            { value: '2K+',  label: 'Total Followers', accent: 'var(--txt-2)' },
-                        ].map(({ value, label, accent }) => (
-                            <div key={label} className="corner-accent p-8 text-center relative" style={{ background: 'rgba(13,19,32,0.6)', border: '1px solid var(--line)' }}>
-                                <div className="font-headline text-5xl font-extrabold mb-2" style={{ color: accent }}>{value}</div>
-                                <div className="font-mono-ieee text-[11px] tracking-[0.2em] uppercase" style={{ color: 'var(--txt-3)' }}>{label}</div>
-                            </div>
-                        ))}
-                    </div>
+            <section className="py-20 relative z-10 scene-3d">
+                <div ref={statsRef} className="reveal-stagger max-w-7xl mx-auto px-6 md:px-14 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatTile value={500} suffix="+" label="Active Members" accent="var(--cy)" />
+                    <StatTile value={40}  suffix="+" label="Events Organized" accent="var(--am)" />
+                    <StatTile value={2}   suffix="K+" label="Total Followers" accent="var(--txt-2)" />
                 </div>
             </section>
 
             {/* ─── MISSION & VISION ────────────────────────────────────────────── */}
-            <section className="py-24" style={{ background: 'rgba(5,7,13,0.8)' }}>
-                <div className="max-w-7xl mx-auto px-6 md:px-14">
-                    <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-                        {/* Mission */}
-                        <div className="corner-accent p-10 flex flex-col justify-center relative" style={{ background: 'var(--bg-panel)', border: '1px solid var(--line)' }}>
-                            <div className="inline-flex items-center gap-2 mb-6">
-                                <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase text-primary">01 /</span>
-                                <h2 className="font-headline text-2xl font-bold text-primary">Our Mission</h2>
-                            </div>
-                            <p className="leading-relaxed text-lg" style={{ color: 'var(--txt-2)' }}>
-                                To foster technological innovation and excellence for the benefit of humanity. We provide students with the platform to engage with global engineering standards, participate in world-class competitions, and connect with industry leaders through workshops and technical seminars.
-                            </p>
-                        </div>
-                        {/* Vision */}
-                        <div className="corner-accent p-10 flex flex-col justify-center relative" style={{ background: 'var(--bg-panel)', border: '1px solid var(--line)' }}>
-                            <div className="inline-flex items-center gap-2 mb-6">
-                                <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase text-tertiary">02 /</span>
-                                <h2 className="font-headline text-2xl font-bold text-tertiary">Our Vision</h2>
-                            </div>
-                            <p className="leading-relaxed text-lg" style={{ color: 'var(--txt-2)' }}>
-                                To become a premiere technical observatory that empowers students to lead in a rapidly evolving digital landscape. We envision a community where technical literacy and ethical innovation are the core pillars of professional development.
-                            </p>
-                        </div>
-                    </div>
+            <section className="py-24 scene-3d" style={{ background: 'rgba(5,7,13,0.8)' }}>
+                <div ref={mvRef} className="reveal-stagger max-w-7xl mx-auto px-6 md:px-14 grid lg:grid-cols-2 gap-8 items-stretch">
+                    <InfoPanel
+                        num="01"
+                        title="Our Mission"
+                        accent="primary"
+                        body="To foster technological innovation and excellence for the benefit of humanity. We provide students with the platform to engage with global engineering standards, participate in world-class competitions, and connect with industry leaders through workshops and technical seminars."
+                    />
+                    <InfoPanel
+                        num="02"
+                        title="Our Vision"
+                        accent="tertiary"
+                        body="To become a premiere technical observatory that empowers students to lead in a rapidly evolving digital landscape. We envision a community where technical literacy and ethical innovation are the core pillars of professional development."
+                    />
                 </div>
             </section>
 
             {/* ─── FACULTY ADVISOR ─────────────────────────────────────────────── */}
-            <section className="py-24 relative overflow-hidden">
+            <section ref={advisorRef} className="reveal py-24 relative overflow-hidden scene-3d">
                 <div className="max-w-5xl mx-auto px-6 md:px-14">
-                    <div className="corner-accent p-8 md:p-16 relative overflow-hidden" style={{ background: 'var(--bg-panel)', border: '1px solid var(--line)' }}>
+                    <div
+                        className="corner-accent holo-edge tilt-3d depth-card p-8 md:p-16 relative overflow-hidden"
+                        {...advisorTilt.bind}
+                    >
                         {/* Large quote mark */}
                         <div className="absolute top-6 right-8 font-mono-ieee text-[8rem] leading-none font-bold pointer-events-none select-none" style={{ color: 'rgba(0,229,255,0.04)' }}>"</div>
 
                         {/* Scan line accent */}
                         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
 
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-                            <div className="w-44 h-44 flex-shrink-0 overflow-hidden relative" style={{ border: '2px solid rgba(0,229,255,0.2)' }}>
+                        <div className="tilt-layer relative z-10 flex flex-col md:flex-row items-center gap-12" style={{ '--z': '32px' } as React.CSSProperties}>
+                            <div ref={advisorImgRef} className="parallax-layer w-44 h-44 flex-shrink-0 overflow-hidden relative float-y-slow" style={{ border: '2px solid rgba(0,229,255,0.2)' }}>
                                 <img
                                     alt="Faculty Advisor"
                                     className="w-full h-full object-cover"
                                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvlVItpj-5VKK0v_rlt9GGDdVrKAG33X0thh4MLUa8CFzcDAT553ASYJFNoVph0NtaLM4divED4tIeme23apq7KwmRGbrJm4d3QxogejIeT8dV4wtSqeG-rl5wk_ksdl5cRytxYH3drd1Qf7Dd0cmosxc47MTq-wQfCtESDrFHWlNkrLWtlsrSSuOiHdECDtm-UY_u_Av46ooKRRstP1abvR71_yPtHS069MisVGYwBRQqhMSMdbse-0dVmP4rq6LI7nA9IVu8HTiy"
                                 />
-                                {/* Corner accent on image */}
                                 <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid var(--cy)', borderLeft: '2px solid var(--cy)' }} />
                                 <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid var(--cy)', borderRight: '2px solid var(--cy)' }} />
                             </div>
@@ -123,7 +218,7 @@ const Home = () => {
             </section>
 
             {/* ─── COLLABORATIONS MARQUEE ──────────────────────────────────────── */}
-            <section className="py-24 overflow-hidden" style={{ background: 'rgba(5,7,13,0.9)' }}>
+            <section ref={partnersRef} className="reveal py-24 overflow-hidden" style={{ background: 'rgba(5,7,13,0.9)' }}>
                 <div className="max-w-7xl mx-auto px-6 md:px-14 mb-12 text-center">
                     <div className="inline-flex items-center gap-3">
                         <div className="h-px w-12" style={{ background: 'linear-gradient(to right, transparent, var(--line-2))' }} />
@@ -161,7 +256,7 @@ const Home = () => {
             </section>
 
             {/* ─── FAQ ─────────────────────────────────────────────────────────── */}
-            <section className="py-24">
+            <section ref={faqRef} className="reveal-stagger py-24">
                 <div className="max-w-3xl mx-auto px-6 md:px-14">
                     <div className="text-center mb-16">
                         <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary mb-3 block">FAQ</span>
@@ -183,20 +278,36 @@ const Home = () => {
                                 a: 'Registration for events is typically handled through our internal portal or the specific event link shared on our social media handles and this website.',
                             },
                         ].map(({ q, a, open }) => (
-                            <details key={q} className="group" open={open}>
-                                <summary className="flex justify-between items-center p-6 cursor-pointer list-none transition-all" style={{ background: 'rgba(13,19,32,0.6)', border: '1px solid var(--line)' }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}>
-                                    <span className="font-headline font-bold text-on-surface">{q}</span>
-                                    <span className="material-symbols-outlined transition-transform duration-300 group-open:rotate-180 text-primary flex-shrink-0 ml-4">expand_more</span>
-                                </summary>
-                                <div className="px-6 pb-6 pt-4 text-on-surface-variant leading-relaxed" style={{ background: 'rgba(13,19,32,0.3)', border: '1px solid var(--line)', borderTop: 'none' }}>
-                                    {a}
-                                </div>
-                            </details>
+                            <FaqItem key={q} q={q} a={a} open={open} />
                         ))}
                     </div>
                 </div>
             </section>
         </main>
+    );
+};
+
+/* ─── FAQ item with 3D pop on open ───────────────────────────────────── */
+const FaqItem = ({ q, a, open }: { q: string; a: string; open?: boolean }) => {
+    const detailsRef = useRef<HTMLDetailsElement | null>(null);
+    return (
+        <details ref={detailsRef} className="group" open={open}>
+            <summary
+                className="flex justify-between items-center p-6 cursor-pointer list-none transition-all holo-edge"
+                style={{ background: 'rgba(13,19,32,0.6)', border: '1px solid var(--line)' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
+            >
+                <span className="font-headline font-bold text-on-surface">{q}</span>
+                <span className="material-symbols-outlined transition-transform duration-300 group-open:rotate-180 text-primary flex-shrink-0 ml-4">expand_more</span>
+            </summary>
+            <div
+                className="px-6 pb-6 pt-4 text-on-surface-variant leading-relaxed"
+                style={{ background: 'rgba(13,19,32,0.3)', border: '1px solid var(--line)', borderTop: 'none' }}
+            >
+                {a}
+            </div>
+        </details>
     );
 };
 

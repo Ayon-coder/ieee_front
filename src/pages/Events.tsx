@@ -2,12 +2,118 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { EventRecord } from '../lib/api';
+import { useScrollReveal, useTilt3D } from '../lib/use3d';
+
+/* ─── EventCard with 3D tilt + holo edge ──────────────────────────────── */
+type EventCardProps = {
+    event: EventRecord;
+    getCategoryLabel: (c?: string) => string;
+    formatDate: (d?: string) => string;
+    onCertificate: () => void;
+    onLearnMore: () => void;
+};
+const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearnMore }: EventCardProps) => {
+    const { bind } = useTilt3D({ max: 7 });
+    return (
+        <article
+            className="glass-card holo-edge tilt-3d flex flex-col group transition-all duration-300 relative"
+            {...bind}
+        >
+            <div className="tilt-layer flex flex-col" style={{ '--z': '20px' } as React.CSSProperties}>
+                {/* Top accent line */}
+                <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
+
+                {/* Image */}
+                <div className="relative h-52 overflow-hidden">
+                    {event.imageUrl ? (
+                        <img
+                            alt={event.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            src={event.imageUrl}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
+                            }}
+                        />
+                    ) : null}
+                    <div className={`absolute inset-0 flex items-center justify-center ${event.imageUrl ? 'hidden' : ''}`} style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.05), rgba(255,184,77,0.05))' }}>
+                        <span className="material-symbols-outlined text-5xl" style={{ color: 'var(--line-cy)' }}>event</span>
+                    </div>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,7,13,0.7), transparent 60%)' }} />
+                    {/* Category badge */}
+                    <div className="absolute top-3 left-3 px-2.5 py-1" style={{ background: 'rgba(8,11,20,0.85)', border: '1px solid var(--line-cy)' }}>
+                        <span className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-primary">{getCategoryLabel(event.category)}</span>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-7 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="material-symbols-outlined text-sm" style={{ color: 'var(--txt-3)', fontSize: '14px' }}>calendar_today</span>
+                        <span className="font-mono-ieee text-[10px] tracking-wider" style={{ color: 'var(--txt-3)' }}>{formatDate(event.date)}</span>
+                    </div>
+                    <h3 className="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-primary transition-colors">
+                        {event.name}
+                    </h3>
+                    <p className="text-sm mb-8 line-clamp-3" style={{ color: 'var(--txt-2)' }}>
+                        {event.description || 'Join us for this exciting IEEE event.'}
+                    </p>
+                    <div className="mt-auto flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onCertificate}
+                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold"
+                        >
+                            View Certificate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onLearnMore}
+                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors"
+                            style={{ border: '1px solid var(--line)' }}
+                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
+                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
+                        >
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </article>
+    );
+};
+
+const PastEventTile = ({ month, title, desc }: { month: string; title: string; desc: string }) => {
+    const { bind } = useTilt3D({ max: 5 });
+    return (
+        <div
+            className="p-6 tilt-3d transition-all duration-300 group relative"
+            style={{ background: 'rgba(13,19,32,0.4)', border: '1px solid var(--line)', opacity: 0.85 }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)'; }}
+            {...bind}
+        >
+            <div className="tilt-layer" style={{ '--z': '18px' } as React.CSSProperties}>
+                <div className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase text-primary mb-3">{month}</div>
+                <h4 className="font-headline font-bold text-on-surface mb-2">{title}</h4>
+                <p className="text-xs leading-relaxed mb-5" style={{ color: 'var(--txt-3)' }}>{desc}</p>
+                <a className="font-mono-ieee text-[10px] tracking-wider uppercase flex items-center gap-1.5 text-on-surface hover:text-primary transition-colors" href="#">
+                    View Recap
+                    <span className="material-symbols-outlined text-xs" style={{ fontSize: '14px' }}>arrow_forward</span>
+                </a>
+            </div>
+        </div>
+    );
+};
 
 const Events = () => {
     const navigate = useNavigate();
     const [events, setEvents] = useState<EventRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const upcomingRef = useScrollReveal<HTMLDivElement>(0.1);
+    const pastRef = useScrollReveal<HTMLDivElement>(0.1);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -54,14 +160,14 @@ const Events = () => {
     ];
 
     return (
-        <main className="pt-24 pb-20">
+        <main className="pt-24 pb-20 scene-3d">
             {/* ─── HERO ────────────────────────────────────────────────────── */}
             <section className="max-w-7xl mx-auto py-16 md:py-24 text-center relative overflow-hidden px-6 md:px-12">
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-[-20%] left-[-5%] w-[40%] h-[80%] rounded-full opacity-15" style={{ background: 'radial-gradient(circle, var(--cy), transparent 70%)', filter: 'blur(80px)' }} />
-                    <div className="absolute bottom-[-20%] right-[-5%] w-[35%] h-[80%] rounded-full opacity-10" style={{ background: 'radial-gradient(circle, var(--am), transparent 70%)', filter: 'blur(80px)' }} />
+                    <div className="absolute top-[-20%] left-[-5%] w-[40%] h-[80%] rounded-full opacity-15 float-y-slow" style={{ background: 'radial-gradient(circle, var(--cy), transparent 70%)', filter: 'blur(80px)' }} />
+                    <div className="absolute bottom-[-20%] right-[-5%] w-[35%] h-[80%] rounded-full opacity-10 float-y" style={{ background: 'radial-gradient(circle, var(--am), transparent 70%)', filter: 'blur(80px)' }} />
                 </div>
-                <div className="relative z-10">
+                <div className="relative z-10 reveal-stagger is-visible">
                     <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary block mb-4">Events / Archive</span>
                     <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter mb-6">
                         Technological <span className="text-gradient">Horizons</span>
@@ -101,70 +207,16 @@ const Events = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div ref={upcomingRef} className="reveal-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {events.map((event) => (
-                        <article
+                        <EventCard
                             key={event.id}
-                            className="glass-card flex flex-col group transition-all duration-300 hover:translate-y-[-3px] relative"
-                        >
-                            {/* Top accent line */}
-                            <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
-
-                            {/* Image */}
-                            <div className="relative h-52 overflow-hidden">
-                                {event.imageUrl ? (
-                                    <img
-                                        alt={event.name}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        src={event.imageUrl}
-                                        onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                            (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
-                                        }}
-                                    />
-                                ) : null}
-                                <div className={`absolute inset-0 flex items-center justify-center ${event.imageUrl ? 'hidden' : ''}`} style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.05), rgba(255,184,77,0.05))' }}>
-                                    <span className="material-symbols-outlined text-5xl" style={{ color: 'var(--line-cy)' }}>event</span>
-                                </div>
-                                {/* Category badge */}
-                                <div className="absolute top-3 left-3 px-2.5 py-1" style={{ background: 'rgba(8,11,20,0.85)', border: '1px solid var(--line-cy)' }}>
-                                    <span className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-primary">{getCategoryLabel(event.category)}</span>
-                                </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="p-7 flex flex-col flex-1">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="material-symbols-outlined text-sm" style={{ color: 'var(--txt-3)', fontSize: '14px' }}>calendar_today</span>
-                                    <span className="font-mono-ieee text-[10px] tracking-wider" style={{ color: 'var(--txt-3)' }}>{formatDate(event.date)}</span>
-                                </div>
-                                <h3 className="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-primary transition-colors">
-                                    {event.name}
-                                </h3>
-                                <p className="text-sm mb-8 line-clamp-3" style={{ color: 'var(--txt-2)' }}>
-                                    {event.description || 'Join us for this exciting IEEE event.'}
-                                </p>
-                                <div className="mt-auto flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate(`/events/${event.id}/certificate`, { state: { event } })}
-                                        className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold"
-                                    >
-                                        View Certificate
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/event-details')}
-                                        className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors"
-                                        style={{ border: '1px solid var(--line)' }}
-                                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
-                                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
-                                    >
-                                        Learn More
-                                    </button>
-                                </div>
-                            </div>
-                        </article>
+                            event={event}
+                            getCategoryLabel={getCategoryLabel}
+                            formatDate={formatDate}
+                            onCertificate={() => navigate(`/events/${event.id}/certificate`, { state: { event } })}
+                            onLearnMore={() => navigate('/event-details')}
+                        />
                     ))}
                 </div>
             </section>
@@ -176,17 +228,9 @@ const Events = () => {
                     <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-on-surface-variant">Past Milestones</span>
                     <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, var(--line))' }} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div ref={pastRef} className="reveal-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     {pastEvents.map(({ month, title, desc }) => (
-                        <div key={title} className="p-6 transition-all duration-300 hover:translate-y-[-2px] group relative" style={{ background: 'rgba(13,19,32,0.4)', border: '1px solid var(--line)', opacity: 0.8 }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)'; }}>
-                            <div className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase text-primary mb-3">{month}</div>
-                            <h4 className="font-headline font-bold text-on-surface mb-2">{title}</h4>
-                            <p className="text-xs leading-relaxed mb-5" style={{ color: 'var(--txt-3)' }}>{desc}</p>
-                            <a className="font-mono-ieee text-[10px] tracking-wider uppercase flex items-center gap-1.5 text-on-surface hover:text-primary transition-colors" href="#">
-                                View Recap
-                                <span className="material-symbols-outlined text-xs" style={{ fontSize: '14px' }}>arrow_forward</span>
-                            </a>
-                        </div>
+                        <PastEventTile key={title} month={month} title={title} desc={desc} />
                     ))}
                 </div>
             </section>
