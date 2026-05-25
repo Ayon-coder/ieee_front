@@ -4,10 +4,10 @@ import { useTilt3D, useScrollReveal } from '../lib/use3d';
 type Member = { name: string; role: string; src: string; icons: string[] };
 
 const ExecCard = ({ m }: { m: Member }) => {
-    const { bind } = useTilt3D({ max: 9 });
+    const { bind } = useTilt3D({ max: 16 });
     return (
         <div className="glass-card holo-edge tilt-3d overflow-hidden group transition-all duration-300 relative" {...bind}>
-            <div className="tilt-layer" style={{ '--z': '22px' } as React.CSSProperties}>
+            <div className="tilt-layer" style={{ '--z': '36px' } as React.CSSProperties}>
                 <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
                 <div className="relative aspect-square overflow-hidden">
                     <img className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108" src={m.src} alt={m.name} style={{ transition: 'transform 0.5s ease' }} />
@@ -29,10 +29,10 @@ const ExecCard = ({ m }: { m: Member }) => {
 };
 
 const TechCard = ({ m }: { m: Member }) => {
-    const { bind } = useTilt3D({ max: 6 });
+    const { bind } = useTilt3D({ max: 13 });
     return (
         <div className="glass-card tilt-3d overflow-hidden group relative" {...bind}>
-            <div className="tilt-layer" style={{ '--z': '18px' } as React.CSSProperties}>
+            <div className="tilt-layer" style={{ '--z': '30px' } as React.CSSProperties}>
                 <div className="relative aspect-[3/4] overflow-hidden">
                     <img className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" src={m.src} alt={m.name} />
                     <div className="member-overlay absolute bottom-0 left-0 right-0 p-3 flex justify-center gap-3" style={{ background: 'linear-gradient(to top, rgba(5,7,13,0.9), transparent)' }}>
@@ -51,10 +51,10 @@ const TechCard = ({ m }: { m: Member }) => {
 };
 
 const CreativeCard = ({ m }: { m: Member }) => {
-    const { bind } = useTilt3D({ max: 6 });
+    const { bind } = useTilt3D({ max: 12 });
     return (
         <div className="glass-card tilt-3d flex items-center p-4 gap-5 group transition-transform" {...bind}>
-            <div className="tilt-layer flex items-center gap-5" style={{ '--z': '14px' } as React.CSSProperties}>
+            <div className="tilt-layer flex items-center gap-5" style={{ '--z': '24px' } as React.CSSProperties}>
                 <div className="w-20 h-20 overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--line)' }}>
                     <img className="w-full h-full object-cover" src={m.src} alt={m.name} />
                 </div>

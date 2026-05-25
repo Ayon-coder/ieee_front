@@ -22,8 +22,8 @@ export const EventsBackdrop = () => {
         const onMove = (e: PointerEvent) => {
             const cx = window.innerWidth / 2;
             const cy = window.innerHeight / 2;
-            tx = ((e.clientX - cx) / window.innerWidth) * 12;
-            ty = ((e.clientY - cy) / window.innerHeight) * 8;
+            tx = ((e.clientX - cx) / window.innerWidth) * 22;
+            ty = ((e.clientY - cy) / window.innerHeight) * 16;
             if (!raf) {
                 raf = requestAnimationFrame(() => {
                     stage.style.transform = `rotateY(${tx.toFixed(2)}deg) rotateX(${(70 - ty).toFixed(2)}deg)`;
@@ -47,13 +47,13 @@ export const EventsBackdrop = () => {
                     style={{ transformStyle: 'preserve-3d', transform: 'rotateX(70deg)', transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)' }}
                 >
                     {/* Helix of dashed rings stacked vertically */}
-                    {Array.from({ length: 9 }).map((_, i) => {
-                        const y = (i - 4) * 60;
-                        const size = 460 + Math.abs(i - 4) * 30;
-                        const dur = 24 + i * 3;
+                    {Array.from({ length: 12 }).map((_, i) => {
+                        const y = (i - 5.5) * 55;
+                        const size = 520 + Math.abs(i - 5.5) * 40;
+                        const dur = 18 + i * 2.5;
                         const rev = i % 2 === 0;
                         const accent = i % 3 === 0 ? 'var(--am)' : 'var(--cy)';
-                        const opacity = 0.18 + ((9 - Math.abs(i - 4)) / 9) * 0.18;
+                        const opacity = 0.28 + ((12 - Math.abs(i - 5.5)) / 12) * 0.28;
                         return (
                             <div
                                 key={i}
@@ -64,7 +64,7 @@ export const EventsBackdrop = () => {
                                     marginLeft: -size / 2,
                                     marginTop: -size / 2,
                                     borderRadius: '50%',
-                                    border: `1px dashed ${accent}`,
+                                    border: `${i % 4 === 0 ? 2 : 1}px dashed ${accent}`,
                                     opacity,
                                     transform: `translateZ(${y}px)`,
                                     animation: `events-ring-spin ${dur}s linear infinite${rev ? ' reverse' : ''}`,
@@ -73,25 +73,26 @@ export const EventsBackdrop = () => {
                         );
                     })}
                     {/* Floating cube nodes around helix */}
-                    {Array.from({ length: 6 }).map((_, i) => {
-                        const angle = (i / 6) * Math.PI * 2;
-                        const r = 260;
+                    {Array.from({ length: 10 }).map((_, i) => {
+                        const angle = (i / 10) * Math.PI * 2;
+                        const r = 300;
                         const x = Math.cos(angle) * r;
                         const z = Math.sin(angle) * r;
+                        const isAmber = i % 4 === 0;
                         return (
                             <div
                                 key={i}
                                 className="absolute left-1/2 top-1/2"
                                 style={{
-                                    width: 22,
-                                    height: 22,
-                                    marginLeft: -11,
-                                    marginTop: -11,
-                                    border: '1px solid var(--cy)',
-                                    background: 'rgba(0,229,255,0.08)',
-                                    boxShadow: '0 0 18px rgba(0,229,255,0.35)',
+                                    width: 34,
+                                    height: 34,
+                                    marginLeft: -17,
+                                    marginTop: -17,
+                                    border: `1.5px solid ${isAmber ? 'var(--am)' : 'var(--cy)'}`,
+                                    background: isAmber ? 'rgba(255,184,77,0.12)' : 'rgba(0,229,255,0.12)',
+                                    boxShadow: isAmber ? '0 0 26px rgba(255,184,77,0.45)' : '0 0 26px rgba(0,229,255,0.45)',
                                     transform: `translate3d(${x}px, 0, ${z}px) rotateX(45deg) rotateY(45deg)`,
-                                    animation: `events-node-float 6s ease-in-out ${i * 0.5}s infinite`,
+                                    animation: `events-node-float 5s ease-in-out ${i * 0.4}s infinite`,
                                 }}
                             />
                         );
@@ -149,15 +150,15 @@ export const TeamsBackdrop = () => {
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            const count = Math.min(85, Math.floor((width * height) / 14000));
+            const count = Math.min(130, Math.floor((width * height) / 9000));
             nodes = Array.from({ length: count }, () => ({
                 x: Math.random() * width,
                 y: Math.random() * height,
                 z: Math.random() * 1.4 + 0.3,
-                vx: (Math.random() - 0.5) * 0.35,
-                vy: (Math.random() - 0.5) * 0.35,
-                vz: (Math.random() - 0.5) * 0.002,
-                hue: Math.random() > 0.85 ? 'am' : 'cy',
+                vx: (Math.random() - 0.5) * 0.55,
+                vy: (Math.random() - 0.5) * 0.55,
+                vz: (Math.random() - 0.5) * 0.003,
+                hue: Math.random() > 0.75 ? 'am' : 'cy',
             }));
         };
 
@@ -185,8 +186,8 @@ export const TeamsBackdrop = () => {
                     const dx = mouse.x - n.x;
                     const dy = mouse.y - n.y;
                     const d2 = dx * dx + dy * dy;
-                    if (d2 < 26000) {
-                        const f = (26000 - d2) / 26000 * 0.04;
+                    if (d2 < 40000) {
+                        const f = (40000 - d2) / 40000 * 0.07;
                         n.vx += (dx / Math.sqrt(d2 || 1)) * f;
                         n.vy += (dy / Math.sqrt(d2 || 1)) * f;
                     }
@@ -196,7 +197,7 @@ export const TeamsBackdrop = () => {
             }
 
             /* Connecting lines */
-            const linkDist = 150;
+            const linkDist = 210;
             for (let i = 0; i < nodes.length; i++) {
                 const a = nodes[i];
                 for (let j = i + 1; j < nodes.length; j++) {
@@ -205,11 +206,11 @@ export const TeamsBackdrop = () => {
                     const dy = a.y - b.y;
                     const d = Math.sqrt(dx * dx + dy * dy);
                     if (d < linkDist) {
-                        const alpha = (1 - d / linkDist) * 0.22 * Math.min(a.z, b.z);
+                        const alpha = (1 - d / linkDist) * 0.32 * Math.min(a.z, b.z);
                         ctx.strokeStyle = (a.hue === 'am' || b.hue === 'am')
                             ? `rgba(255,184,77,${alpha})`
                             : `rgba(0,229,255,${alpha})`;
-                        ctx.lineWidth = 0.7;
+                        ctx.lineWidth = 0.9;
                         ctx.beginPath();
                         ctx.moveTo(a.x, a.y);
                         ctx.lineTo(b.x, b.y);
@@ -220,11 +221,11 @@ export const TeamsBackdrop = () => {
 
             /* Nodes (sized by z so it feels 3D) */
             for (const n of nodes) {
-                const r = 1.2 + n.z * 1.6;
+                const r = 2 + n.z * 2.4;
                 const tint = n.hue === 'cy' ? 'rgba(0,229,255,' : 'rgba(255,184,77,';
-                ctx.fillStyle = `${tint}${0.55 * n.z})`;
+                ctx.fillStyle = `${tint}${0.65 * n.z})`;
                 ctx.shadowColor = n.hue === 'cy' ? '#00e5ff' : '#ffb84d';
-                ctx.shadowBlur = 8 * n.z;
+                ctx.shadowBlur = 14 * n.z;
                 ctx.beginPath();
                 ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
                 ctx.fill();
@@ -251,8 +252,8 @@ export const TeamsBackdrop = () => {
         <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
             <canvas ref={canvasRef} className="particle-canvas" />
             {/* Two ambient glows */}
-            <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full float-y-slow" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.05), transparent 70%)', filter: 'blur(80px)' }} />
-            <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full float-y" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.04), transparent 70%)', filter: 'blur(80px)' }} />
+            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full float-y-slow" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.09), transparent 70%)', filter: 'blur(80px)' }} />
+            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full float-y" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.07), transparent 70%)', filter: 'blur(80px)' }} />
         </div>
     );
 };
@@ -265,10 +266,10 @@ export const ContactBackdrop = () => {
     return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
             {/* Pulse origin */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
-                 style={{ background: 'var(--cy)', boxShadow: '0 0 24px var(--cy)' }} />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full"
+                 style={{ background: 'var(--cy)', boxShadow: '0 0 40px var(--cy), 0 0 80px rgba(0,229,255,0.5)' }} />
             {/* Expanding pulses */}
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 7 }).map((_, i) => (
                 <div
                     key={i}
                     className="absolute left-1/2 top-1/2 rounded-full"
@@ -277,14 +278,14 @@ export const ContactBackdrop = () => {
                         height: 80,
                         marginLeft: -40,
                         marginTop: -40,
-                        border: '1px solid var(--cy)',
+                        border: '1.5px solid var(--cy)',
                         opacity: 0,
-                        animation: `contact-pulse 6s ease-out ${i * 1.2}s infinite`,
+                        animation: `contact-pulse 5s ease-out ${i * 0.7}s infinite`,
                     }}
                 />
             ))}
             {/* Amber counter-pulses */}
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 5 }).map((_, i) => (
                 <div
                     key={`a${i}`}
                     className="absolute left-1/2 top-1/2 rounded-full"
@@ -293,25 +294,25 @@ export const ContactBackdrop = () => {
                         height: 80,
                         marginLeft: -40,
                         marginTop: -40,
-                        border: '1px dashed var(--am)',
+                        border: '1.5px dashed var(--am)',
                         opacity: 0,
-                        animation: `contact-pulse-am 9s ease-out ${i * 3 + 1.5}s infinite`,
+                        animation: `contact-pulse-am 7s ease-out ${i * 1.4 + 0.8}s infinite`,
                     }}
                 />
             ))}
             {/* Transmission beams (rotating) */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 1200, height: 1200, animation: 'contact-beam-spin 60s linear infinite' }}>
-                {Array.from({ length: 6 }).map((_, i) => (
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 1600, height: 1600, animation: 'contact-beam-spin 40s linear infinite' }}>
+                {Array.from({ length: 10 }).map((_, i) => (
                     <div
                         key={i}
                         className="absolute left-1/2 top-1/2"
                         style={{
-                            width: 600,
-                            height: 1,
-                            marginTop: -0.5,
+                            width: 800,
+                            height: 1.5,
+                            marginTop: -0.75,
                             transformOrigin: '0 50%',
-                            background: 'linear-gradient(to right, transparent, rgba(0,229,255,0.18), transparent)',
-                            transform: `rotate(${i * 60}deg)`,
+                            background: `linear-gradient(to right, transparent, ${i % 3 === 0 ? 'rgba(255,184,77,0.25)' : 'rgba(0,229,255,0.3)'}, transparent)`,
+                            transform: `rotate(${i * 36}deg)`,
                         }}
                     />
                 ))}
@@ -321,12 +322,12 @@ export const ContactBackdrop = () => {
             <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(5,7,13,0.7) 80%)' }} />
             <style>{`
                 @keyframes contact-pulse {
-                    0%   { width: 80px; height: 80px; margin-left: -40px; margin-top: -40px; opacity: 0.65; border-color: rgba(0,229,255,0.6); }
-                    100% { width: 1200px; height: 1200px; margin-left: -600px; margin-top: -600px; opacity: 0; border-color: rgba(0,229,255,0); }
+                    0%   { width: 80px; height: 80px; margin-left: -40px; margin-top: -40px; opacity: 0.75; border-color: rgba(0,229,255,0.7); }
+                    100% { width: 1800px; height: 1800px; margin-left: -900px; margin-top: -900px; opacity: 0; border-color: rgba(0,229,255,0); }
                 }
                 @keyframes contact-pulse-am {
-                    0%   { width: 80px; height: 80px; margin-left: -40px; margin-top: -40px; opacity: 0.45; border-color: rgba(255,184,77,0.5); }
-                    100% { width: 1400px; height: 1400px; margin-left: -700px; margin-top: -700px; opacity: 0; }
+                    0%   { width: 80px; height: 80px; margin-left: -40px; margin-top: -40px; opacity: 0.55; border-color: rgba(255,184,77,0.6); }
+                    100% { width: 2000px; height: 2000px; margin-left: -1000px; margin-top: -1000px; opacity: 0; }
                 }
                 @keyframes contact-beam-spin {
                     from { transform: translate(-50%, -50%) rotate(0deg); }

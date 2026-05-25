@@ -15,13 +15,13 @@ type EventCardProps = {
     onLearnMore: () => void;
 };
 const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearnMore }: EventCardProps) => {
-    const { bind } = useTilt3D({ max: 7 });
+    const { bind } = useTilt3D({ max: 14 });
     return (
         <article
             className="glass-card holo-edge tilt-3d flex flex-col group transition-all duration-300 relative"
             {...bind}
         >
-            <div className="tilt-layer flex flex-col" style={{ '--z': '20px' } as React.CSSProperties}>
+            <div className="tilt-layer flex flex-col" style={{ '--z': '32px' } as React.CSSProperties}>
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
 
@@ -63,16 +63,17 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
                     <div className="mt-auto flex gap-3 relative z-10">
                         <button
                             type="button"
-                            onClick={onCertificate}
-                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold relative z-10"
+                            onClick={(e) => { e.stopPropagation(); onCertificate(); }}
+                            className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold relative z-20"
+                            style={{ pointerEvents: 'auto' }}
                         >
                             View Certificate
                         </button>
                         <button
                             type="button"
-                            onClick={onLearnMore}
-                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors relative z-10"
-                            style={{ border: '1px solid var(--line)' }}
+                            onClick={(e) => { e.stopPropagation(); onLearnMore(); }}
+                            className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors relative z-20"
+                            style={{ border: '1px solid var(--line)', pointerEvents: 'auto' }}
                             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
                             onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
                         >
@@ -86,7 +87,7 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
 };
 
 const PastEventTile = ({ month, title, desc }: { month: string; title: string; desc: string }) => {
-    const { bind } = useTilt3D({ max: 5 });
+    const { bind } = useTilt3D({ max: 10 });
     return (
         <div
             className="p-6 tilt-3d transition-all duration-300 group relative"
@@ -95,7 +96,7 @@ const PastEventTile = ({ month, title, desc }: { month: string; title: string; d
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)'; }}
             {...bind}
         >
-            <div className="tilt-layer" style={{ '--z': '18px' } as React.CSSProperties}>
+            <div className="tilt-layer" style={{ '--z': '28px' } as React.CSSProperties}>
                 <div className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase text-primary mb-3">{month}</div>
                 <h4 className="font-headline font-bold text-on-surface mb-2">{title}</h4>
                 <p className="text-xs leading-relaxed mb-5" style={{ color: 'var(--txt-3)' }}>{desc}</p>

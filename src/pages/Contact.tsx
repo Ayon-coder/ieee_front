@@ -2,7 +2,7 @@ import { ContactBackdrop } from '../components/PageBackdrops';
 import { useScrollReveal, useTilt3D } from '../lib/use3d';
 
 const Contact = () => {
-    const formTilt = useTilt3D<HTMLDivElement>({ max: 5 });
+    const formTilt = useTilt3D<HTMLDivElement>({ max: 12 });
     const infoRef = useScrollReveal<HTMLDivElement>(0.15);
     const formRef = useScrollReveal<HTMLDivElement>(0.15);
     return (
@@ -11,8 +11,8 @@ const Contact = () => {
                 <ContactBackdrop />
             </div>
             {/* Ambient glows */}
-            <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.06), transparent 70%)', filter: 'blur(80px)' }} />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[350px] h-[350px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.05), transparent 70%)', filter: 'blur(80px)' }} />
+            <div className="absolute top-[-10%] right-[-5%] w-[550px] h-[550px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.1), transparent 70%)', filter: 'blur(80px)' }} />
+            <div className="absolute bottom-[-10%] left-[-5%] w-[450px] h-[450px] rounded-full pointer-events-none -z-10" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.08), transparent 70%)', filter: 'blur(80px)' }} />
 
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
@@ -92,7 +92,7 @@ const Contact = () => {
                     {/* Right: Contact Form */}
                     <div ref={formRef} className="reveal lg:col-span-7">
                         <div className="corner-accent holo-edge tilt-3d depth-card p-8 md:p-12 relative" {...formTilt.bind}>
-                            <div className="tilt-layer" style={{ '--z': '28px' } as React.CSSProperties}>
+                            <div className="tilt-layer" style={{ '--z': '40px' } as React.CSSProperties}>
                             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
 
                             <div className="mb-10">
