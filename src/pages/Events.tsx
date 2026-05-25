@@ -17,25 +17,6 @@ type EventCardProps = {
 const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearnMore }: EventCardProps) => {
     const { bind } = useTilt3D({ max: 14 });
     
-    const handleCertificateClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        // Ensure the handler is called with proper timing
-        requestAnimationFrame(() => {
-            onCertificate();
-        });
-    };
-    
-    const handleLearnMoreClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        requestAnimationFrame(() => {
-            onLearnMore();
-        });
-    };
-    
     return (
         <article
             className="glass-card holo-edge tilt-3d flex flex-col group transition-all duration-300 relative"
@@ -83,17 +64,32 @@ const EventCard = ({ event, getCategoryLabel, formatDate, onCertificate, onLearn
                     <div className="mt-auto flex gap-3 relative z-10">
                         <button
                             type="button"
-                            onClick={handleCertificateClick}
+                            onClickCapture={onCertificate}
+                            onClick={onCertificate}
                             className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold relative z-20"
-                            style={{ pointerEvents: 'auto' }}
+                            style={{ 
+                                pointerEvents: 'auto', 
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                WebkitUserSelect: 'none',
+                                touchAction: 'manipulation'
+                            } as React.CSSProperties}
                         >
                             View Certificate
                         </button>
                         <button
                             type="button"
-                            onClick={handleLearnMoreClick}
+                            onClickCapture={onLearnMore}
+                            onClick={onLearnMore}
                             className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors relative z-20"
-                            style={{ border: '1px solid var(--line)', pointerEvents: 'auto' }}
+                            style={{ 
+                                border: '1px solid var(--line)', 
+                                pointerEvents: 'auto', 
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                WebkitUserSelect: 'none',
+                                touchAction: 'manipulation'
+                            } as React.CSSProperties}
                             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
                             onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
                         >
