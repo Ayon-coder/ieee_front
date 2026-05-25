@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { sendChat, warmupChat } from '../lib/chatbotApi';
 import type { ChatMessage, ChatMode, ChatSource } from '../lib/chatbotApi';
 import { ChatBackdrop } from '../components/PageBackdrops';
+import ChatOnboardingModal from '../components/ChatOnboardingModal';
+import ChatLoadingIndicator from '../components/ChatLoadingIndicator';
 
 type DisplayMessage = {
     role: 'user' | 'assistant';
@@ -170,9 +172,27 @@ const Chat = () => {
     const [banned, setBanned] = useState<boolean>(isBanned());
     const [banMins, setBanMins] = useState<number>(banRemainingMinutes());
     const [statusStep, setStatusStep] = useState(0);
+    const [showOnboarding, setShowOnboarding] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
+
+    const handleOnboardingDismiss = useCallback(() => {
+        setShowOnboarding(false);
+    }, []);
+
+    const handleInitialResponse = useCallback((content: string, sources?: any[]) => {
+        const assistantMsg: DisplayMessage = {
+            role: 'assistant',
+            content,
+            sources,
+        };
+        setMessages([assistantMsg]);
+        setHistory([
+            { role: 'user', content: 'hello' },
+            { role: 'assistant', content },
+        ]);
+    }, []);
 
     /* Warmup once on mount (no-op if SiteLoader already warmed it). */
     useEffect(() => {
@@ -538,6 +558,14 @@ const Chat = () => {
                     to   { opacity: 1; transform: translateX(0); }
                 }
             `}</style>
+
+            {showOnboarding && (
+                <ChatOnboardingModal 
+                    onDismiss={handleOnboardingDismiss}
+                    onInitialResponse={handleInitialResponse}
+                    mode={mode}
+                />
+            )}
         </main>
     );
 };
