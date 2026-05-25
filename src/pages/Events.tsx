@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -25,183 +24,173 @@ const Events = () => {
                 setLoading(false);
             }
         };
-
         fetchEvents();
     }, []);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Date TBA';
         try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric'
             });
         } catch {
             return dateString;
         }
     };
 
-    const getCategoryColor = (category?: string) => {
-        const categoryMap = {
-            'Workshop': 'Workshop',
-            'Hackathon': 'Hackathon',
-            'Seminar': 'Seminar',
-            'Conference': 'Conference',
-            'Webinar': 'Webinar'
+    const getCategoryLabel = (category?: string) => {
+        const map: Record<string, string> = {
+            Workshop: 'Workshop', Hackathon: 'Hackathon',
+            Seminar: 'Seminar', Conference: 'Conference', Webinar: 'Webinar',
         };
-        if (!category) {
-            return 'Event';
-        }
-
-        return categoryMap[category as keyof typeof categoryMap] || 'Event';
+        return map[category ?? ''] ?? 'Event';
     };
 
+    const pastEvents = [
+        { month: 'April 2024', title: 'Signal Processing Expo', desc: 'Showcasing graduate research in audio and visual signal manipulation.' },
+        { month: 'March 2024', title: 'Cloud Infrastructure 101', desc: 'Hands-on session with AWS and Azure fundamentals for beginners.' },
+        { month: 'Feb 2024',   title: 'IEEE Day Celebration', desc: 'Networking and awards ceremony for active student members.' },
+        { month: 'Jan 2024',   title: 'PCB Design Workshop', desc: 'Mastering Eagle and KiCad for hardware prototyping.' },
+    ];
+
     return (
-        <>
-            <main className="pt-24 pb-20">
-{/*  Hero Section  */}
-<section className="max-w-7xl mx-auto py-12 md:py-20 text-center relative overflow-hidden px-12">
-<div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none opacity-20">
-<div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary blur-[120px] rounded-full"></div>
-<div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-tertiary-container blur-[120px] rounded-full"></div>
-</div>
-<h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter mb-6 relative">
-                Technological <span className="text-gradient">Horizons</span>
-</h1>
-<p className="text-on-surface-variant max-w-2xl mx-auto text-lg md:text-xl font-light">
-                Explore the nexus of innovation and academia through our curated workshops, seminars, and hackathons.
-            </p>
-</section>
-{/*  Upcoming Events  */}
-<section className="max-w-7xl mx-auto py-12 px-12">
-<div className="flex items-center justify-between mb-12">
-<h2 className="font-headline text-3xl font-bold tracking-tight">Upcoming Events</h2>
-<div className="h-px flex-1 mx-8 bg-gradient-to-r from-outline-variant/50 to-transparent"></div>
-</div>
+        <main className="pt-24 pb-20">
+            {/* ─── HERO ────────────────────────────────────────────────────── */}
+            <section className="max-w-7xl mx-auto py-16 md:py-24 text-center relative overflow-hidden px-6 md:px-12">
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-[-20%] left-[-5%] w-[40%] h-[80%] rounded-full opacity-15" style={{ background: 'radial-gradient(circle, var(--cy), transparent 70%)', filter: 'blur(80px)' }} />
+                    <div className="absolute bottom-[-20%] right-[-5%] w-[35%] h-[80%] rounded-full opacity-10" style={{ background: 'radial-gradient(circle, var(--am), transparent 70%)', filter: 'blur(80px)' }} />
+                </div>
+                <div className="relative z-10">
+                    <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary block mb-4">Events / Archive</span>
+                    <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter mb-6">
+                        Technological <span className="text-gradient">Horizons</span>
+                    </h1>
+                    <p className="max-w-2xl mx-auto text-lg md:text-xl font-light" style={{ color: 'var(--txt-2)' }}>
+                        Explore the nexus of innovation and academia through our curated workshops, seminars, and hackathons.
+                    </p>
+                </div>
+            </section>
 
-{loading && (
-    <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>
-)}
+            {/* ─── UPCOMING EVENTS ─────────────────────────────────────────── */}
+            <section className="max-w-7xl mx-auto py-12 px-6 md:px-12">
+                <div className="flex items-center gap-4 mb-12">
+                    <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">Upcoming</span>
+                    <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, var(--line-cy), transparent)' }} />
+                </div>
 
-{error && (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8 text-red-800">
-        <p className="font-semibold mb-2">⚠ Error Loading Events</p>
-        <p className="text-sm">{error}</p>
-        <p className="text-xs mt-3">Ensure the backend server is running on port 5001</p>
-    </div>
-)}
+                {loading && (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="relative w-10 h-10">
+                            <div className="absolute inset-0 border border-primary/20 animate-spin" style={{ borderTopColor: 'var(--cy)', borderRadius: 0 }} />
+                        </div>
+                    </div>
+                )}
 
-{!loading && events.length === 0 && !error && (
-    <div className="text-center py-12">
-        <p className="text-on-surface-variant">No events available at this time.</p>
-    </div>
-)}
+                {error && (
+                    <div className="p-6 mb-8" style={{ background: 'rgba(255,61,113,0.08)', border: '1px solid rgba(255,61,113,0.25)', borderLeft: '2px solid var(--mg)' }}>
+                        <p className="font-mono-ieee text-[11px] tracking-widest uppercase text-[var(--mg)] mb-2">Error Loading Events</p>
+                        <p className="text-sm text-on-surface-variant">{error}</p>
+                        <p className="font-mono-ieee text-[10px] tracking-wider mt-3" style={{ color: 'var(--txt-3)' }}>Ensure backend is running on port 5001</p>
+                    </div>
+                )}
 
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-{events.map((event) => (
-    <article key={event.id} className="glass-panel ghost-border rounded-full overflow-hidden flex flex-col group transition-all duration-300 hover:scale-[1.02] hover:bg-surface-bright/20">
-        <div className="relative h-56 overflow-hidden">
-            {event.imageUrl ? (
-                <img 
-                    alt={event.name} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                    src={event.imageUrl}
-                    onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                />
-            ) : null}
-            <div className={`absolute inset-0 bg-gradient-to-br from-primary/10 to-tertiary-container/10 flex items-center justify-center ${event.imageUrl ? 'hidden' : ''}`}>
-                <span className="material-symbols-outlined text-6xl text-primary/20">event</span>
-            </div>
-            <div className="absolute top-4 left-4 glass-panel px-3 py-1 rounded-lg text-xs font-bold tracking-widest text-primary uppercase">
-                {getCategoryColor(event.category)}
-            </div>
-        </div>
-        <div className="p-8 flex flex-col flex-1">
-            <div className="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
-                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_today</span>
-                <span>{formatDate(event.date)}</span>
-            </div>
-            <h3 className="font-headline text-2xl font-bold mb-4 leading-tight group-hover:text-primary transition-colors">
-                {event.name}
-            </h3>
-            <p className="text-on-surface-variant text-sm mb-8 line-clamp-3">
-                {event.description || 'Join us for this exciting IEEE event.'}
-            </p>
-            <div className="mt-auto flex gap-4">
-                <button
-                    type="button"
-                    onClick={() => navigate(`/events/${event.id}/certificate`, { state: { event } })}
-                    className="btn-gradient flex-1 py-3 rounded-xl font-headline font-bold text-on-primary text-sm tracking-wide hover:shadow-lg transition-shadow"
-                >
-                    View Certificate
-                </button>
-                <button
-                    type="button"
-                    onClick={() => navigate('/event-details')}
-                    className="flex-1 py-3 rounded-xl border border-outline/40 text-on-surface font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors"
-                >
-                    Learn More
-                </button>
-            </div>
-        </div>
-    </article>
-))}
-</div>
-</section>
-{/*  Past Events  */}
-<section className="max-w-7xl mx-auto py-20 px-12">
-<div className="flex items-center justify-between mb-12">
-<h2 className="font-headline text-2xl font-bold tracking-tight text-on-surface-variant">Past Milestones</h2>
-<div className="h-px flex-1 mx-8 bg-gradient-to-r from-outline-variant/30 to-transparent"></div>
-</div>
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-{/*  Past Card 1  */}
-<div className="bg-surface-container-low/40 rounded-full border border-outline-variant/20 p-6 opacity-80 hover:opacity-100 transition-opacity">
-<div className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-3">April 2024</div>
-<h4 className="font-headline font-bold mb-2">Signal Processing Expo</h4>
-<p className="text-on-surface-variant text-xs mb-4">Showcasing graduate research in audio and visual signal manipulation.</p>
-<a className="text-xs font-bold text-on-surface flex items-center gap-1 hover:text-primary transition-colors" href="#">
-                        View Recap <span className="material-symbols-outlined text-xs">arrow_forward</span>
-</a>
-</div>
-{/*  Past Card 2  */}
-<div className="bg-surface-container-low/40 rounded-full border border-outline-variant/20 p-6 opacity-80 hover:opacity-100 transition-opacity">
-<div className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-3">March 2024</div>
-<h4 className="font-headline font-bold mb-2">Cloud Infrastructure 101</h4>
-<p className="text-on-surface-variant text-xs mb-4">Hands-on session with AWS and Azure fundamentals for beginners.</p>
-<a className="text-xs font-bold text-on-surface flex items-center gap-1 hover:text-primary transition-colors" href="#">
-                        View Recap <span className="material-symbols-outlined text-xs">arrow_forward</span>
-</a>
-</div>
-{/*  Past Card 3  */}
-<div className="bg-surface-container-low/40 rounded-full border border-outline-variant/20 p-6 opacity-80 hover:opacity-100 transition-opacity">
-<div className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-3">Feb 2024</div>
-<h4 className="font-headline font-bold mb-2">IEEE Day Celebration</h4>
-<p className="text-on-surface-variant text-xs mb-4">Networking and awards ceremony for active student members.</p>
-<a className="text-xs font-bold text-on-surface flex items-center gap-1 hover:text-primary transition-colors" href="#">
-                        View Recap <span className="material-symbols-outlined text-xs">arrow_forward</span>
-</a>
-</div>
-{/*  Past Card 4  */}
-<div className="bg-surface-container-low/40 rounded-full border border-outline-variant/20 p-6 opacity-80 hover:opacity-100 transition-opacity">
-<div className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-3">Jan 2024</div>
-<h4 className="font-headline font-bold mb-2">PCB Design Workshop</h4>
-<p className="text-on-surface-variant text-xs mb-4">Mastering Eagle and KiCad for hardware prototyping.</p>
-<a className="text-xs font-bold text-on-surface flex items-center gap-1 hover:text-primary transition-colors" href="#">
-                        View Recap <span className="material-symbols-outlined text-xs">arrow_forward</span>
-</a>
-</div>
-</div>
-</section>
-</main>
-        </>
+                {!loading && events.length === 0 && !error && (
+                    <div className="text-center py-16">
+                        <p className="font-mono-ieee text-[11px] tracking-widest uppercase text-on-surface-variant">No events available at this time.</p>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {events.map((event) => (
+                        <article
+                            key={event.id}
+                            className="glass-card flex flex-col group transition-all duration-300 hover:translate-y-[-3px] relative"
+                        >
+                            {/* Top accent line */}
+                            <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
+
+                            {/* Image */}
+                            <div className="relative h-52 overflow-hidden">
+                                {event.imageUrl ? (
+                                    <img
+                                        alt={event.name}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        src={event.imageUrl}
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
+                                        }}
+                                    />
+                                ) : null}
+                                <div className={`absolute inset-0 flex items-center justify-center ${event.imageUrl ? 'hidden' : ''}`} style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.05), rgba(255,184,77,0.05))' }}>
+                                    <span className="material-symbols-outlined text-5xl" style={{ color: 'var(--line-cy)' }}>event</span>
+                                </div>
+                                {/* Category badge */}
+                                <div className="absolute top-3 left-3 px-2.5 py-1" style={{ background: 'rgba(8,11,20,0.85)', border: '1px solid var(--line-cy)' }}>
+                                    <span className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-primary">{getCategoryLabel(event.category)}</span>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-7 flex flex-col flex-1">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="material-symbols-outlined text-sm" style={{ color: 'var(--txt-3)', fontSize: '14px' }}>calendar_today</span>
+                                    <span className="font-mono-ieee text-[10px] tracking-wider" style={{ color: 'var(--txt-3)' }}>{formatDate(event.date)}</span>
+                                </div>
+                                <h3 className="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-primary transition-colors">
+                                    {event.name}
+                                </h3>
+                                <p className="text-sm mb-8 line-clamp-3" style={{ color: 'var(--txt-2)' }}>
+                                    {event.description || 'Join us for this exciting IEEE event.'}
+                                </p>
+                                <div className="mt-auto flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/events/${event.id}/certificate`, { state: { event } })}
+                                        className="btn-gradient flex-1 py-3 text-[10px] tracking-widest uppercase font-bold"
+                                    >
+                                        View Certificate
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/event-details')}
+                                        className="flex-1 py-3 font-mono-ieee text-[10px] tracking-widest uppercase font-bold text-on-surface hover:text-primary transition-colors"
+                                        style={{ border: '1px solid var(--line)' }}
+                                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
+                                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
+                                    >
+                                        Learn More
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            {/* ─── PAST EVENTS ─────────────────────────────────────────────── */}
+            <section className="max-w-7xl mx-auto py-20 px-6 md:px-12">
+                <div className="flex items-center gap-4 mb-12">
+                    <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, transparent, var(--line))' }} />
+                    <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-on-surface-variant">Past Milestones</span>
+                    <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, transparent, var(--line))' }} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    {pastEvents.map(({ month, title, desc }) => (
+                        <div key={title} className="p-6 transition-all duration-300 hover:translate-y-[-2px] group relative" style={{ background: 'rgba(13,19,32,0.4)', border: '1px solid var(--line)', opacity: 0.8 }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--line)'; }}>
+                            <div className="font-mono-ieee text-[9px] tracking-[0.22em] uppercase text-primary mb-3">{month}</div>
+                            <h4 className="font-headline font-bold text-on-surface mb-2">{title}</h4>
+                            <p className="text-xs leading-relaxed mb-5" style={{ color: 'var(--txt-3)' }}>{desc}</p>
+                            <a className="font-mono-ieee text-[10px] tracking-wider uppercase flex items-center gap-1.5 text-on-surface hover:text-primary transition-colors" href="#">
+                                View Recap
+                                <span className="material-symbols-outlined text-xs" style={{ fontSize: '14px' }}>arrow_forward</span>
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </main>
     );
 };
 
