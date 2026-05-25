@@ -1,12 +1,14 @@
 import { TeamsBackdrop } from '../components/PageBackdrops';
-import { useTilt3D, useScrollReveal } from '../lib/use3d';
+import { useTilt3D, useScrollReveal, useParallax } from '../lib/use3d';
 
 type Member = { name: string; role: string; src: string; icons: string[] };
 
-const ExecCard = ({ m }: { m: Member }) => {
+const ExecCard = ({ m, pStrength = 0.1 }: { m: Member, pStrength?: number }) => {
     const { bind } = useTilt3D({ max: 16 });
+    const pRef = useParallax<HTMLDivElement>(pStrength);
     return (
-        <div className="glass-card holo-edge tilt-3d overflow-hidden group transition-all duration-300 relative" {...bind}>
+        <div ref={pRef} className="parallax-layer w-full">
+            <div className="glass-card holo-edge tilt-3d overflow-hidden group transition-all duration-300 relative" {...bind}>
             <div className="tilt-layer" style={{ '--z': '36px' } as React.CSSProperties}>
                 <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(to right, var(--cy), transparent)' }} />
                 <div className="relative aspect-square overflow-hidden">
@@ -25,13 +27,16 @@ const ExecCard = ({ m }: { m: Member }) => {
                 </div>
             </div>
         </div>
+        </div>
     );
 };
 
-const TechCard = ({ m }: { m: Member }) => {
+const TechCard = ({ m, pStrength = 0.1 }: { m: Member, pStrength?: number }) => {
     const { bind } = useTilt3D({ max: 13 });
+    const pRef = useParallax<HTMLDivElement>(pStrength);
     return (
-        <div className="glass-card tilt-3d overflow-hidden group relative" {...bind}>
+        <div ref={pRef} className="parallax-layer w-full">
+            <div className="glass-card tilt-3d overflow-hidden group relative" {...bind}>
             <div className="tilt-layer" style={{ '--z': '30px' } as React.CSSProperties}>
                 <div className="relative aspect-[3/4] overflow-hidden">
                     <img className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" src={m.src} alt={m.name} />
@@ -47,13 +52,16 @@ const TechCard = ({ m }: { m: Member }) => {
                 </div>
             </div>
         </div>
+        </div>
     );
 };
 
-const CreativeCard = ({ m }: { m: Member }) => {
+const CreativeCard = ({ m, pStrength = 0.1 }: { m: Member, pStrength?: number }) => {
     const { bind } = useTilt3D({ max: 12 });
+    const pRef = useParallax<HTMLDivElement>(pStrength);
     return (
-        <div className="glass-card tilt-3d flex items-center p-4 gap-5 group transition-transform" {...bind}>
+        <div ref={pRef} className="parallax-layer w-full">
+            <div className="glass-card tilt-3d flex items-center p-4 gap-5 group transition-transform" {...bind}>
             <div className="tilt-layer flex items-center gap-5" style={{ '--z': '24px' } as React.CSSProperties}>
                 <div className="w-20 h-20 overflow-hidden flex-shrink-0" style={{ border: '1px solid var(--line)' }}>
                     <img className="w-full h-full object-cover" src={m.src} alt={m.name} />
@@ -68,6 +76,7 @@ const CreativeCard = ({ m }: { m: Member }) => {
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     );
 };
@@ -140,8 +149,8 @@ const Teams = () => {
             <section ref={execRevealRef} className="reveal-stagger mb-24">
                 <SectionLabel code="01 /" label="Executive Core" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {execMembers.map((m) => (
-                        <ExecCard key={m.name} m={m} />
+                    {execMembers.map((m, i) => (
+                        <ExecCard key={m.name} m={m} pStrength={0.08 + i * 0.05} />
                     ))}
                 </div>
             </section>
@@ -154,8 +163,8 @@ const Teams = () => {
                     <h2 className="font-headline text-xl font-bold text-primary uppercase tracking-tight">Technical Operations</h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                    {techMembers.map((m) => (
-                        <TechCard key={m.name} m={m} />
+                    {techMembers.map((m, i) => (
+                        <TechCard key={m.name} m={m} pStrength={0.06 + (i % 2) * 0.06} />
                     ))}
                 </div>
             </section>
@@ -168,8 +177,8 @@ const Teams = () => {
                     <h2 className="font-headline text-xl font-bold text-secondary uppercase tracking-tight">Creative Collective</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {creativeMembers.map((m) => (
-                        <CreativeCard key={m.name} m={m} />
+                    {creativeMembers.map((m, i) => (
+                        <CreativeCard key={m.name} m={m} pStrength={0.05 + (i % 3) * 0.04} />
                     ))}
                 </div>
             </section>

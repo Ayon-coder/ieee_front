@@ -599,3 +599,27 @@ body {
     .cursor-dot, .cursor-ring { display: none; }
     .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
 }
+
+/* %%% NEW BACKDROP ANIMATIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
+@keyframes chat-tunnel-fly {
+    0%   { transform: translateZ(-1400px); opacity: 0; }
+    20%  { opacity: 0.8; }
+    80%  { opacity: 0.8; }
+    100% { transform: translateZ(800px); opacity: 0; }
+}
+@keyframes galaxy-spin {
+    from { transform: rotateZ(0deg); }
+    to   { transform: rotateZ(360deg); }
+}
+
+/* ─── NEW BACKDROP ANIMATIONS ────────────────────────────────────────────── */
+@keyframes chat-tunnel-fly {
+    0%   { transform: translateZ(-1400px); opacity: 0; }
+    20%  { opacity: 0.8; }
+    80%  { opacity: 0.8; }
+    100% { transform: translateZ(800px); opacity: 0; }
+}
+@keyframes galaxy-spin {
+    from { transform: rotateZ(0deg); }
+    to   { transform: rotateZ(360deg); }
+}

@@ -160,12 +160,15 @@ export const TeamsBackdrop = () => {
         const resize = () => {
             const p = canvas.parentElement;
             if (!p) return;
-            width = p.clientWidth;
-            height = p.clientHeight;
+            // Make canvas 1.5x larger so it doesn't clip when spinning
+            width = p.clientWidth * 1.5;
+            height = p.clientHeight * 1.5;
             canvas.width = width * dpr;
             canvas.height = height * dpr;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
+            canvas.style.marginLeft = `${-(width - p.clientWidth)/2}px`;
+            canvas.style.marginTop = `${-(height - p.clientHeight)/2}px`;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             const count = Math.min(80, Math.floor((width * height) / 14000));
             nodes = Array.from({ length: count }, () => ({
@@ -287,10 +290,12 @@ export const TeamsBackdrop = () => {
 
     return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            <canvas ref={canvasRef} className="particle-canvas" />
-            {/* Two ambient glows */}
-            <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full float-y-slow" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.09), transparent 70%)', filter: 'blur(80px)' }} />
-            <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full float-y" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.07), transparent 70%)', filter: 'blur(80px)' }} />
+            <div className="absolute inset-0 tilt-3d">
+                <canvas ref={canvasRef} className="particle-canvas" style={{ animation: 'galaxy-spin 150s linear infinite' }} />
+                {/* Two ambient glows */}
+                <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full float-y-slow" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.09), transparent 70%)', filter: 'blur(80px)' }} />
+                <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full float-y" style={{ background: 'radial-gradient(circle, rgba(255,184,77,0.07), transparent 70%)', filter: 'blur(80px)' }} />
+            </div>
         </div>
     );
 };
@@ -515,53 +520,61 @@ export const CertificateBackdrop = () => {
    --------------------------------------------------------------------- */
 export const ChatBackdrop = () => {
     return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-            {/* Data streams */}
-            {Array.from({ length: 14 }).map((_, i) => (
-                <div
-                    key={i}
-                    className="absolute top-0 bottom-0"
-                    style={{
-                        left: `${(i / 13) * 100}%`,
-                        width: 1,
-                        background: `linear-gradient(to bottom, transparent, ${i % 5 === 0 ? 'var(--am)' : 'var(--cy)'}, transparent)`,
-                        opacity: 0.18,
-                        animation: `chat-stream ${6 + (i % 5) * 1.2}s linear ${i * 0.4}s infinite`,
-                    }}
-                />
-            ))}
-            {/* Soft floating bubbles */}
-            {Array.from({ length: 6 }).map((_, i) => {
-                const left = 10 + ((i * 73) % 80);
-                const top = 15 + ((i * 41) % 70);
-                const size = 60 + ((i * 23) % 60);
-                return (
-                    <div
-                        key={`b${i}`}
-                        className="absolute rounded-full float-y-slow"
-                        style={{
-                            left: `${left}%`,
-                            top: `${top}%`,
-                            width: size,
-                            height: size,
-                            background: i % 3 === 0
-                                ? 'radial-gradient(circle, rgba(255,184,77,0.08), transparent 70%)'
-                                : 'radial-gradient(circle, rgba(0,229,255,0.07), transparent 70%)',
-                            filter: 'blur(18px)',
-                            animationDelay: `${i * 0.7}s`,
-                        }}
-                    />
-                );
-            })}
-            <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,7,13,0.7) 100%)' }} />
-            <style>{`
-                @keyframes chat-stream {
-                    0%   { transform: translateY(-100%); opacity: 0; }
-                    20%  { opacity: 0.8; }
-                    80%  { opacity: 0.8; }
-                    100% { transform: translateY(100%); opacity: 0; }
-                }
-            `}</style>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true" style={{ perspective: '1200px' }}>
+            <div className="absolute inset-0 tilt-3d" style={{ transformStyle: 'preserve-3d' }}>
+                <div className="tilt-layer absolute inset-0" style={{ '--z': '0px', transformStyle: 'preserve-3d' } as React.CSSProperties}>
+                    {/* 3D Cyber Tunnel Data Streams */}
+                    {Array.from({ length: 24 }).map((_, i) => {
+                        const rotZ = i * 15;
+                        return (
+                            <div
+                                key={i}
+                                className="absolute left-1/2 top-1/2"
+                                style={{
+                                    transform: `rotateZ(${rotZ}deg) rotateX(86deg)`,
+                                    transformOrigin: 'center center',
+                                    transformStyle: 'preserve-3d',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        width: 2,
+                                        height: 1000,
+                                        marginLeft: -1,
+                                        marginTop: -500,
+                                        background: `linear-gradient(to bottom, transparent, ${i % 5 === 0 ? 'var(--am)' : 'var(--cy)'}, transparent)`,
+                                        animation: `chat-tunnel-fly ${3 + (i % 4) * 0.8}s linear ${i * 0.15}s infinite`,
+                                        opacity: 0,
+                                        willChange: 'transform, opacity'
+                                    }}
+                                />
+                            </div>
+                        );
+                    })}
+                    {/* Tunnel Rings */}
+                    {Array.from({ length: 10 }).map((_, i) => {
+                        return (
+                            <div
+                                key={`r${i}`}
+                                className="absolute left-1/2 top-1/2 rounded-full"
+                                style={{
+                                    width: 800,
+                                    height: 800,
+                                    marginLeft: -400,
+                                    marginTop: -400,
+                                    border: `1px ${i % 2 === 0 ? 'solid' : 'dashed'} ${i % 3 === 0 ? 'rgba(255,184,77,0.2)' : 'rgba(0,229,255,0.2)'}`,
+                                    animation: `chat-tunnel-fly 4.5s linear ${i * 0.45}s infinite`,
+                                    opacity: 0,
+                                    willChange: 'transform, opacity'
+                                }}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+            {/* Vignette mask */}
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 10%, rgba(5,7,13,0.9) 80%, var(--bg-0) 100%)' }} />
         </div>
     );
 };
