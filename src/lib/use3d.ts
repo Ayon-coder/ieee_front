@@ -1,14 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+/* ─── Global Device Orientation ────────────────────────────────────────────── */
+let currentBeta = 45; // Neutral holding angle
+let currentGamma = 0;
+let hasOrientation = false;
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('deviceorientation', (e) => {
+        if (e.beta !== null && e.gamma !== null) {
+            hasOrientation = true;
+            currentBeta = e.beta;
+            currentGamma = e.gamma;
+        }
+    });
+
+    const updateGlobalGyroCSS = () => {
+        const drift = getGlobalIdleDrift();
+        // Set global CSS variables for all .tilt-3d elements to inherit
+        document.documentElement.style.setProperty('--gyro-rx', `${(drift.dy * 12).toFixed(2)}deg`);
+        document.documentElement.style.setProperty('--gyro-ry', `${(drift.dx * 12).toFixed(2)}deg`);
+        requestAnimationFrame(updateGlobalGyroCSS);
+    };
+    updateGlobalGyroCSS();
+}
+
+export function getGlobalIdleDrift() {
+    const t = Date.now() / 2000;
+    let dx = Math.sin(t) * 0.5; // -0.5 to 0.5
+    let dy = Math.cos(t * 0.8) * 0.5;
+    
+    if (hasOrientation) {
+        // Blend in gyro (assuming 45deg neutral beta)
+        const bx = Math.max(-45, Math.min(45, currentBeta - 45)) / 45;
+        const gy = Math.max(-45, Math.min(45, currentGamma)) / 45;
+        dx = gy;
+        dy = -bx;
+    }
+    return { dx, dy };
+}
+
 /* ─── useTilt3D ────────────────────────────────────────────────────────────
    Pointer-driven 3D tilt: rotateX/Y based on mouse position over the element.
-   Sets CSS variables --rx, --ry, --mx, --my, --shine and adds .tilt-3d class
-   styling (defined in index.css).
+   Falls back to device orientation (gyroscope) if mouse is not hovering.
    --------------------------------------------------------------------- */
 export type TiltOptions = {
     max?: number;
     scale?: number;
-    perspective?: number;
 };
 
 export function useTilt3D<T extends HTMLElement = HTMLDivElement>(options: TiltOptions = {}) {
@@ -16,6 +53,7 @@ export function useTilt3D<T extends HTMLElement = HTMLDivElement>(options: TiltO
     const ref = useRef<T | null>(null);
 
     const handleMove = useCallback((e: React.PointerEvent<T>) => {
+        if (e.pointerType === 'touch') return;
         const el = e.currentTarget;
         const rect = el.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -32,9 +70,10 @@ export function useTilt3D<T extends HTMLElement = HTMLDivElement>(options: TiltO
     }, [max]);
 
     const handleLeave = useCallback((e: React.PointerEvent<T>) => {
+        if (e.pointerType === 'touch') return;
         const el = e.currentTarget;
-        el.style.setProperty('--rx', '0deg');
-        el.style.setProperty('--ry', '0deg');
+        el.style.removeProperty('--rx');
+        el.style.removeProperty('--ry');
         el.style.setProperty('--shine', '0');
     }, []);
 

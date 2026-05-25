@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getGlobalIdleDrift } from '../lib/use3d';
 
 /* ─── Hero3D ──────────────────────────────────────────────────────────────
    Pure CSS 3D wireframe (nested cubes + orbiting dots + tilted rings) layered
@@ -123,24 +124,37 @@ const Hero3D = () => {
         let raf = 0;
         let tx = 0;
         let ty = 0;
+        let isHovered = false;
 
         const onMove = (e: PointerEvent) => {
+            if (e.pointerType === 'touch') return;
+            isHovered = true;
             const rect = stage.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
             tx = ((e.clientX - cx) / rect.width) * 14;
             ty = ((e.clientY - cy) / rect.height) * 14;
-            if (!raf) {
-                raf = requestAnimationFrame(() => {
-                    stage.style.transform = `rotateY(${tx.toFixed(2)}deg) rotateX(${(-ty).toFixed(2)}deg)`;
-                    raf = 0;
-                });
-            }
         };
+        const onLeave = () => { isHovered = false; };
+        
         window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerleave', onLeave);
+        
+        const tick = () => {
+            if (!isHovered) {
+                const drift = getGlobalIdleDrift();
+                tx = drift.dx * 14;
+                ty = drift.dy * 14;
+            }
+            stage.style.transform = `rotateY(${tx.toFixed(2)}deg) rotateX(${(-ty).toFixed(2)}deg)`;
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        
         return () => {
             window.removeEventListener('pointermove', onMove);
-            if (raf) cancelAnimationFrame(raf);
+            window.removeEventListener('pointerleave', onLeave);
+            cancelAnimationFrame(raf);
         };
     }, []);
 

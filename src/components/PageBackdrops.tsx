@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getGlobalIdleDrift } from '../lib/use3d';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Page-specific 3D backdrops. Each one has a unique motion signature so
@@ -19,22 +20,36 @@ export const EventsBackdrop = () => {
         let raf = 0;
         let tx = 0;
         let ty = 0;
+        let isHovered = false;
+        
         const onMove = (e: PointerEvent) => {
+            if (e.pointerType === 'touch') return;
+            isHovered = true;
             const cx = window.innerWidth / 2;
             const cy = window.innerHeight / 2;
             tx = ((e.clientX - cx) / window.innerWidth) * 22;
             ty = ((e.clientY - cy) / window.innerHeight) * 16;
-            if (!raf) {
-                raf = requestAnimationFrame(() => {
-                    stage.style.transform = `rotateY(${tx.toFixed(2)}deg) rotateX(${(70 - ty).toFixed(2)}deg)`;
-                    raf = 0;
-                });
-            }
         };
+        const onLeave = () => { isHovered = false; };
+        
         window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerleave', onLeave);
+        
+        const tick = () => {
+            if (!isHovered) {
+                const drift = getGlobalIdleDrift();
+                tx = drift.dx * 22;
+                ty = drift.dy * 16;
+            }
+            stage.style.transform = `rotateY(${tx.toFixed(2)}deg) rotateX(${(70 - ty).toFixed(2)}deg)`;
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        
         return () => {
             window.removeEventListener('pointermove', onMove);
-            if (raf) cancelAnimationFrame(raf);
+            window.removeEventListener('pointerleave', onLeave);
+            cancelAnimationFrame(raf);
         };
     }, []);
 
@@ -165,6 +180,7 @@ export const TeamsBackdrop = () => {
         };
 
         const onMove = (e: PointerEvent) => {
+            if (e.pointerType === 'touch') return;
             const rect = canvas.getBoundingClientRect();
             mouse.x = e.clientX - rect.left;
             mouse.y = e.clientY - rect.top;
@@ -191,6 +207,20 @@ export const TeamsBackdrop = () => {
                         const d2 = dx * dx + dy * dy;
                         if (d2 < 40000) {
                             const f = (40000 - d2) / 40000 * 0.07;
+                            n.vx += (dx / Math.sqrt(d2 || 1)) * f;
+                            n.vy += (dy / Math.sqrt(d2 || 1)) * f;
+                        }
+                    }
+                } else {
+                    const drift = getGlobalIdleDrift();
+                    const mx = width / 2 + drift.dx * width * 0.4;
+                    const my = height / 2 + drift.dy * height * 0.4;
+                    const dx = mx - n.x;
+                    const dy = my - n.y;
+                    if (Math.abs(dx) < 200 && Math.abs(dy) < 200) {
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < 40000) {
+                            const f = (40000 - d2) / 40000 * 0.05;
                             n.vx += (dx / Math.sqrt(d2 || 1)) * f;
                             n.vy += (dy / Math.sqrt(d2 || 1)) * f;
                         }
