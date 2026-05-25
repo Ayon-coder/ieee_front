@@ -171,12 +171,16 @@ const Chat = () => {
     const [banned, setBanned] = useState<boolean>(isBanned());
     const [banMins, setBanMins] = useState<number>(banRemainingMinutes());
     const [statusStep, setStatusStep] = useState(0);
-    const [showOnboarding, setShowOnboarding] = useState(true);
+    const [showOnboarding, setShowOnboarding] = useState(() => {
+        // Only show the onboarding initialization sequence once per session (cleared on tab close)
+        return !sessionStorage.getItem('ieee_chat_session_initialized');
+    });
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
     const handleOnboardingDismiss = useCallback(() => {
+        sessionStorage.setItem('ieee_chat_session_initialized', 'true');
         setShowOnboarding(false);
     }, []);
 

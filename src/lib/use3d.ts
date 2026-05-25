@@ -16,17 +16,26 @@ if (typeof window !== 'undefined') {
 
     let lastUpdateTime = 0;
     const isMobile = () => window.innerWidth <= 768 || (typeof navigator !== 'undefined' && /mobile|android|iphone/i.test(navigator.userAgent));
-    const updateInterval = () => isMobile() ? 50 : 16; // 20fps on mobile, 60fps on desktop
+    
+    let lastRx = '';
+    let lastRy = '';
     
     const updateGlobalGyroCSS = () => {
         const now = Date.now();
-        const interval = updateInterval();
+        const interval = isMobile() ? 80 : 16; // Throttle to 12fps on mobile, run at 60fps on desktop
         if (now - lastUpdateTime >= interval) {
             lastUpdateTime = now;
             const drift = getGlobalIdleDrift();
-            // Set global CSS variables for all .tilt-3d elements to inherit
-            document.documentElement.style.setProperty('--gyro-rx', `${(drift.dy * 12).toFixed(2)}deg`);
-            document.documentElement.style.setProperty('--gyro-ry', `${(drift.dx * 12).toFixed(2)}deg`);
+            const rxVal = (drift.dy * 12).toFixed(1) + 'deg';
+            const ryVal = (drift.dx * 12).toFixed(1) + 'deg';
+            
+            // Only update document variables if the angles have changed beyond the threshold
+            if (rxVal !== lastRx || ryVal !== lastRy) {
+                lastRx = rxVal;
+                lastRy = ryVal;
+                document.documentElement.style.setProperty('--gyro-rx', rxVal);
+                document.documentElement.style.setProperty('--gyro-ry', ryVal);
+            }
         }
         requestAnimationFrame(updateGlobalGyroCSS);
     };
@@ -191,6 +200,13 @@ export function useParallax<T extends HTMLElement = HTMLDivElement>(strength = 0
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
+        
+        // Disable scroll parallax completely on mobile screen widths to prevent scroll lag/jank
+        if (window.innerWidth <= 768) {
+            el.style.transform = 'none';
+            return;
+        }
+
         let raf = 0;
         const update = () => {
             const rect = el.getBoundingClientRect();

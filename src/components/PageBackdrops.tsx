@@ -62,58 +62,67 @@ export const EventsBackdrop = () => {
                     style={{ transformStyle: 'preserve-3d', transform: 'rotateX(70deg)', transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)' }}
                 >
                     {/* Helix of dashed rings stacked vertically */}
-                    {Array.from({ length: 8 }).map((_, i) => {
-                        const y = (i - 3.5) * 65;
-                        const size = 520 + Math.abs(i - 3.5) * 45;
-                        const dur = 18 + i * 3;
-                        const rev = i % 2 === 0;
-                        const accent = i % 3 === 0 ? 'var(--am)' : 'var(--cy)';
-                        const opacity = 0.28 + ((8 - Math.abs(i - 3.5)) / 8) * 0.28;
-                        return (
-                            <div
-                                key={i}
-                                className="absolute left-1/2 top-1/2"
-                                style={{
-                                    width: size,
-                                    height: size,
-                                    marginLeft: -size / 2,
-                                    marginTop: -size / 2,
-                                    borderRadius: '50%',
-                                    border: `${i % 4 === 0 ? 2 : 1}px dashed ${accent}`,
-                                    opacity,
-                                    transform: `translateZ(${y}px)`,
-                                    animation: `events-ring-spin ${dur}s linear infinite${rev ? ' reverse' : ''}`,
-                                    willChange: 'transform',
-                                }}
-                            />
-                        );
-                    })}
+                    {(() => {
+                        const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
+                        const len = isMob ? 4 : 8;
+                        const center = (len - 1) / 2;
+                        return Array.from({ length: len }).map((_, i) => {
+                            const y = (i - center) * 65;
+                            const size = 520 + Math.abs(i - center) * 45;
+                            const dur = 18 + i * 3;
+                            const rev = i % 2 === 0;
+                            const accent = i % 3 === 0 ? 'var(--am)' : 'var(--cy)';
+                            const opacity = 0.28 + ((len - Math.abs(i - center)) / len) * 0.28;
+                            return (
+                                <div
+                                    key={i}
+                                    className="absolute left-1/2 top-1/2"
+                                    style={{
+                                        width: size,
+                                        height: size,
+                                        marginLeft: -size / 2,
+                                        marginTop: -size / 2,
+                                        borderRadius: '50%',
+                                        border: `${i % 4 === 0 ? 2 : 1}px dashed ${accent}`,
+                                        opacity,
+                                        transform: `translateZ(${y}px)`,
+                                        animation: `events-ring-spin ${dur}s linear infinite${rev ? ' reverse' : ''}`,
+                                        willChange: 'transform',
+                                    }}
+                                />
+                            );
+                        });
+                    })()}
                     {/* Floating cube nodes around helix */}
-                    {Array.from({ length: 6 }).map((_, i) => {
-                        const angle = (i / 6) * Math.PI * 2;
-                        const r = 300;
-                        const x = Math.cos(angle) * r;
-                        const z = Math.sin(angle) * r;
-                        const isAmber = i % 3 === 0;
-                        return (
-                            <div
-                                key={i}
-                                className="absolute left-1/2 top-1/2"
-                                style={{
-                                    width: 34,
-                                    height: 34,
-                                    marginLeft: -17,
-                                    marginTop: -17,
-                                    border: `1.5px solid ${isAmber ? 'var(--am)' : 'var(--cy)'}`,
-                                    background: isAmber ? 'rgba(255,184,77,0.12)' : 'rgba(0,229,255,0.12)',
-                                    boxShadow: isAmber ? '0 0 26px rgba(255,184,77,0.45)' : '0 0 26px rgba(0,229,255,0.45)',
-                                    transform: `translate3d(${x}px, 0, ${z}px) rotateX(45deg) rotateY(45deg)`,
-                                    animation: `events-node-float 5s ease-in-out ${i * 0.6}s infinite`,
-                                    willChange: 'transform',
-                                }}
-                            />
-                        );
-                    })}
+                    {(() => {
+                        const isMob = typeof window !== 'undefined' && window.innerWidth <= 768;
+                        const len = isMob ? 2 : 6;
+                        return Array.from({ length: len }).map((_, i) => {
+                            const angle = (i / len) * Math.PI * 2;
+                            const r = 300;
+                            const x = Math.cos(angle) * r;
+                            const z = Math.sin(angle) * r;
+                            const isAmber = i % 3 === 0;
+                            return (
+                                <div
+                                    key={i}
+                                    className="absolute left-1/2 top-1/2"
+                                    style={{
+                                        width: 34,
+                                        height: 34,
+                                        marginLeft: -17,
+                                        marginTop: -17,
+                                        border: `1.5px solid ${isAmber ? 'var(--am)' : 'var(--cy)'}`,
+                                        background: isAmber ? 'rgba(255,184,77,0.12)' : 'rgba(0,229,255,0.12)',
+                                        boxShadow: isAmber ? '0 0 26px rgba(255,184,77,0.45)' : '0 0 26px rgba(0,229,255,0.45)',
+                                        transform: `translate3d(${x}px, 0, ${z}px) rotateX(45deg) rotateY(45deg)`,
+                                        animation: `events-node-float 5s ease-in-out ${i * 0.6}s infinite`,
+                                        willChange: 'transform',
+                                    }}
+                                />
+                            );
+                        });
+                    })()}
                 </div>
             </div>
             {/* Soft vignette so content stays readable */}
@@ -271,17 +280,22 @@ export const TeamsBackdrop = () => {
             }
 
             /* Nodes (sized by z so it feels 3D) */
+            const isMob = isMobile();
             for (const n of nodes) {
                 const r = 2 + n.z * 2.4;
                 const tint = n.hue === 'cy' ? 'rgba(0,229,255,' : 'rgba(255,184,77,';
                 ctx.fillStyle = `${tint}${0.65 * n.z})`;
-                ctx.shadowColor = n.hue === 'cy' ? '#00e5ff' : '#ffb84d';
-                ctx.shadowBlur = 14 * n.z;
+                if (!isMob) {
+                    ctx.shadowColor = n.hue === 'cy' ? '#00e5ff' : '#ffb84d';
+                    ctx.shadowBlur = 14 * n.z;
+                }
                 ctx.beginPath();
                 ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
                 ctx.fill();
             }
-            ctx.shadowBlur = 0;
+            if (!isMob) {
+                ctx.shadowBlur = 0;
+            }
 
             raf = requestAnimationFrame(tick);
         };
@@ -322,7 +336,7 @@ export const ContactBackdrop = () => {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full"
                  style={{ background: 'var(--cy)', boxShadow: '0 0 40px var(--cy), 0 0 80px rgba(0,229,255,0.5)' }} />
             {/* Expanding pulses */}
-            {Array.from({ length: 7 }).map((_, i) => (
+            {Array.from({ length: typeof window !== 'undefined' && window.innerWidth <= 768 ? 3 : 7 }).map((_, i) => (
                 <div
                     key={i}
                     className="absolute left-1/2 top-1/2 rounded-full"
@@ -339,7 +353,7 @@ export const ContactBackdrop = () => {
                 />
             ))}
             {/* Amber counter-pulses */}
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : 5 }).map((_, i) => (
                 <div
                     key={`a${i}`}
                     className="absolute left-1/2 top-1/2 rounded-full"
@@ -357,7 +371,7 @@ export const ContactBackdrop = () => {
             ))}
             {/* Transmission beams (rotating) */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 1600, height: 1600, animation: 'contact-beam-spin 40s linear infinite' }}>
-                {Array.from({ length: 10 }).map((_, i) => (
+                {Array.from({ length: typeof window !== 'undefined' && window.innerWidth <= 768 ? 4 : 10 }).map((_, i) => (
                     <div
                         key={i}
                         className="absolute left-1/2 top-1/2"
@@ -535,8 +549,8 @@ export const ChatBackdrop = () => {
             <div className="absolute inset-0 tilt-3d" style={{ transformStyle: 'preserve-3d' }}>
                 <div className="tilt-layer absolute inset-0" style={{ '--z': '0px', transformStyle: 'preserve-3d' } as React.CSSProperties}>
                     {/* 3D Cyber Tunnel Data Streams */}
-                    {Array.from({ length: 24 }).map((_, i) => {
-                        const rotZ = i * 15;
+                    {Array.from({ length: typeof window !== 'undefined' && window.innerWidth <= 768 ? 10 : 24 }).map((_, i) => {
+                        const rotZ = i * (360 / (typeof window !== 'undefined' && window.innerWidth <= 768 ? 10 : 24));
                         return (
                             <div
                                 key={i}
@@ -564,7 +578,7 @@ export const ChatBackdrop = () => {
                         );
                     })}
                     {/* Tunnel Rings */}
-                    {Array.from({ length: 10 }).map((_, i) => {
+                    {Array.from({ length: typeof window !== 'undefined' && window.innerWidth <= 768 ? 4 : 10 }).map((_, i) => {
                         return (
                             <div
                                 key={`r${i}`}

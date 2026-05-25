@@ -95,16 +95,21 @@ const Hero3D = () => {
             }
 
             /* Particles */
+            const isMob = isMobile();
             for (const p of particles) {
                 const tint = p.hue === 'cy' ? CY : AM;
                 ctx.fillStyle = `${tint} ${0.55 * p.z})`;
-                ctx.shadowColor = p.hue === 'cy' ? '#00e5ff' : '#ffb84d';
-                ctx.shadowBlur = 6 * p.z;
+                if (!isMob) {
+                    ctx.shadowColor = p.hue === 'cy' ? '#00e5ff' : '#ffb84d';
+                    ctx.shadowBlur = 6 * p.z;
+                }
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                 ctx.fill();
             }
-            ctx.shadowBlur = 0;
+            if (!isMob) {
+                ctx.shadowBlur = 0;
+            }
 
             raf = requestAnimationFrame(tick);
         };
@@ -167,7 +172,7 @@ const Hero3D = () => {
             <div className="absolute inset-0 wire-stage">
                 <div ref={wireRef} className="absolute inset-0" style={{ transformStyle: 'preserve-3d', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
                     {/* Outer dashed orbit ring */}
-                    <div className="wire-ring r2" />
+                    <div className="wire-ring r2 hidden md:block" />
                     <div className="wire-ring" />
 
                     {/* Outer cyan cube */}
@@ -181,7 +186,7 @@ const Hero3D = () => {
                     </div>
 
                     {/* Inner amber cube */}
-                    <div className="wire-core">
+                    <div className="wire-core hidden md:block">
                         <div className="wire-face f1" />
                         <div className="wire-face f2" />
                         <div className="wire-face f3" />
