@@ -21,7 +21,7 @@ const Navbar = () => {
 
     return (
         <nav
-            className={`fixed top-0 w-full z-50 transition-all duration-300 ${isChatPage ? 'hidden md:block' : ''}`}
+            className={`fixed top-0 w-full z-50 transition-all duration-300 ${isChatPage ? 'hidden' : ''}`}
             style={{
                 background: scrolled ? 'rgba(8,11,20,0.85)' : 'transparent',
                 backdropFilter: scrolled ? 'blur(20px)' : 'none',
