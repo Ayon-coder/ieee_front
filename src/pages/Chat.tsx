@@ -1,42 +1,50 @@
-import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
-import type { ReactNode, KeyboardEvent, ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { sendChat, warmupChat } from '../lib/chatbotApi';
 import type { ChatMessage, ChatMode, ChatSource } from '../lib/chatbotApi';
 import { ChatBackdrop } from '../components/PageBackdrops';
 import ChatOnboardingModal from '../components/ChatOnboardingModal';
+import '../styles/ChatPage.css';
 
-type DisplayMessage = {
-    role: 'user' | 'assistant';
-    content: string;
-    sources?: ChatSource[];
-    isWarning?: boolean;
-    isRejected?: boolean;
+/* ── Mode configuration ──────────────────────────────────────────────────── */
+type ModeContent = {
+    label: string;
+    code: string;
+    description: string;
+    suggestions: string[];
 };
 
-const MODES: { key: ChatMode; code: string; label: string; blurb: string }[] = [
-    { key: 'deep_dive', code: 'DD-01', label: 'Deep Dive', blurb: 'Ask about IEEE standards, research, or any engineering topic.' },
-    { key: 'student_branch', code: 'SB-02', label: 'Student Branch', blurb: 'Ask about IEEE SB AOT events, members, schedules, and activities.' },
-];
+const MODE_CONTENT: Record<ChatMode, ModeContent> = {
+    deep_dive: {
+        label: 'Deep Dive',
+        code: 'DD-01',
+        description: 'Technical research, IEEE standards, and global engineering trends.',
+        suggestions: [
+            'Explain IEEE 802.11 standard',
+            'Latest trends in 6G research',
+            'IEEE 754 floating point guide',
+        ],
+    },
+    student_branch: {
+        label: 'Student Branch',
+        code: 'SB-02',
+        description: 'IEEE Student Branch events, membership, and activities.',
+        suggestions: [
+            'Upcoming branch events',
+            'Current committee members',
+            'Membership benefits',
+        ],
+    },
+};
 
-/* ── Gibberish strike system ────────────────────────────────────────────────
-   Mirrors the original chatbot frontend: 3 strikes for nonsense queries (as
-   judged by the backend's watcher model), then a 30-minute cooldown. Strike
-   state is persisted to localStorage so it survives reloads. */
+/* ── Strike / ban system ─────────────────────────────────────────────────── */
 const STRIKE_KEY = 'ieee_assistant_strikes';
 const BAN_KEY = 'ieee_assistant_ban_until';
 const MAX_STRIKES = 3;
 const BAN_DURATION_MS = 30 * 60 * 1000;
 
-function getStrikes(): number {
-    return parseInt(localStorage.getItem(STRIKE_KEY) || '0', 10);
-}
-function setStrikes(n: number): void {
-    localStorage.setItem(STRIKE_KEY, String(n));
-}
-function getBanUntil(): number {
-    return parseInt(localStorage.getItem(BAN_KEY) || '0', 10);
-}
+function getStrikes(): number  { return parseInt(localStorage.getItem(STRIKE_KEY) || '0', 10); }
+function setStrikes(n: number) { localStorage.setItem(STRIKE_KEY, String(n)); }
+function getBanUntil(): number { return parseInt(localStorage.getItem(BAN_KEY) || '0', 10); }
 function setBan(): void {
     localStorage.setItem(BAN_KEY, String(Date.now() + BAN_DURATION_MS));
     setStrikes(0);
@@ -48,10 +56,7 @@ function clearBan(): void {
 function isBanned(): boolean {
     const until = getBanUntil();
     if (!until) return false;
-    if (Date.now() >= until) {
-        clearBan();
-        return false;
-    }
+    if (Date.now() >= until) { clearBan(); return false; }
     return true;
 }
 function banRemainingMinutes(): number {
@@ -60,9 +65,15 @@ function banRemainingMinutes(): number {
     return Math.max(0, Math.ceil((until - Date.now()) / 60000));
 }
 
-/* Rotating status messages shown while the deep-dive pipeline runs
-   (classifier → search → synthesis). Just visual flavor — the backend
-   doesn't actually stream these stages back. */
+/* ── Message type ────────────────────────────────────────────────────────── */
+type DisplayMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+    sources?: ChatSource[];
+    timestamp: Date;
+};
+
+/* ── Status steps (Deep Dive loader) ─────────────────────────────────────── */
 const STATUS_STEPS = [
     { code: '001', text: 'Request received' },
     { code: '002', text: 'Engaging language model' },
@@ -71,557 +82,608 @@ const STATUS_STEPS = [
     { code: '005', text: 'Verifying sources' },
 ];
 
-/* Minimal safe inline renderer: bold, italic, inline code, links, line breaks. */
-function renderInline(text: string): ReactNode[] {
-    const parts: ReactNode[] = [];
-    const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`|https?:\/\/[^\s)]+)/g;
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-    let key = 0;
-    while ((match = regex.exec(text)) !== null) {
-        if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-        if (match[2] !== undefined) parts.push(<strong key={key++}>{match[2]}</strong>);
-        else if (match[3] !== undefined) parts.push(<em key={key++}>{match[3]}</em>);
-        else if (match[4] !== undefined) {
-            parts.push(
-                <code key={key++} className="px-1 py-0.5 rounded bg-black/40 font-mono-ieee text-[0.85em]">
-                    {match[4]}
-                </code>
-            );
-        } else {
-            parts.push(
-                <a
-                    key={key++}
-                    href={match[0]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline decoration-dotted hover:text-[var(--cy)]"
-                >
-                    {match[0]}
-                </a>
-            );
-        }
-        lastIndex = regex.lastIndex;
-    }
-    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-    return parts;
+/* ── Markdown renderer: convert assistant content to safe HTML ───────────── */
+function renderMarkdown(content: string): string {
+    // Basic but safe markdown → HTML conversion (no external dep needed)
+    let html = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    // Code blocks first (protect inner content)
+    html = html.replace(/```[\s\S]*?```/g, (match) => {
+        const inner = match.slice(3, -3).replace(/^\w*\n/, '');
+        return `<pre><code>${inner}</code></pre>`;
+    });
+
+    // Headings
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Bold / italic / inline code
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Blockquotes
+    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Unordered lists
+    html = html.replace(/((?:^[*\-] .+\n?)+)/gm, (match) => {
+        const items = match.trim().split('\n').map(l => `<li>${l.replace(/^[*\-] /, '')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+    });
+
+    // Ordered lists
+    html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (match) => {
+        const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /, '')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+    });
+
+    // Paragraphs — wrap lines not already wrapped
+    html = html
+        .split('\n\n')
+        .map(block => {
+            const b = block.trim();
+            if (!b) return '';
+            if (/^<(h[1-6]|ul|ol|pre|blockquote)/.test(b)) return b;
+            return `<p>${b.replace(/\n/g, '<br/>')}</p>`;
+        })
+        .join('\n');
+
+    return html;
 }
 
-const MessageRow = memo(function MessageRow({ msg }: { msg: DisplayMessage }) {
-    const lines = useMemo(() => msg.content.split('\n'), [msg.content]);
-    const isUser = msg.role === 'user';
-    const flagged = msg.isWarning || msg.isRejected;
+/* ── MessageBubble ───────────────────────────────────────────────────────── */
+const MessageBubble = memo(function MessageBubble({
+    role, content, sources = [], timestamp,
+}: {
+    role: 'user' | 'assistant';
+    content: string;
+    sources?: ChatSource[];
+    timestamp: Date;
+}) {
+    const timeStr = useMemo(() => {
+        const d = timestamp ?? new Date();
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }, [timestamp]);
+
+    const renderedContent = useMemo(
+        () => role === 'assistant' ? renderMarkdown(content) : null,
+        [role, content]
+    );
+
     return (
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-            <div
-                className={`max-w-[78%] md:max-w-[68%] px-4 py-3 text-[14px] leading-relaxed ${
-                    isUser
-                        ? 'bg-[var(--cy-soft)] border border-[var(--line-cy)] text-[var(--txt)]'
-                        : flagged
-                            ? 'bg-[rgba(255,61,113,0.06)] border border-[var(--mg)] text-[var(--mg)]'
-                            : 'bg-[rgba(13,19,32,0.7)] border border-[var(--line)] text-[var(--txt)]'
-                }`}
-                style={{
-                    clipPath:
-                        'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
-                }}
-            >
-                <div className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase mb-1.5 opacity-60">
-                    {isUser ? 'You' : msg.isWarning ? 'IEEE Assistant · Warning' : msg.isRejected ? 'IEEE Assistant · Rejected' : 'IEEE Assistant'}
+        <div className={`msg msg--${role}`} role="article" aria-label={`${role === 'user' ? 'Your' : 'AI'} message`}>
+            <div className="msg__rail" aria-hidden="true">
+                <span className="msg__rail-tick" />
+                <span className="msg__rail-line" />
+                <span className="msg__rail-tick" />
+            </div>
+
+            <div className="msg__body">
+                <div className="msg__meta">
+                    <span className="msg__author">
+                        {role === 'user' ? 'USER' : 'IEEE ASSISTANT'}
+                        <span className="msg__author-dot" />
+                    </span>
+                    <span className="msg__time">{timeStr}</span>
                 </div>
-                {lines.map((line, i) => (
-                    <div key={i} className="whitespace-pre-wrap break-words">
-                        {renderInline(line)}
+
+                <div className="msg__panel">
+                    <span className="msg__corner msg__corner--tl" aria-hidden="true" />
+                    <span className="msg__corner msg__corner--tr" aria-hidden="true" />
+                    <span className="msg__corner msg__corner--bl" aria-hidden="true" />
+                    <span className="msg__corner msg__corner--br" aria-hidden="true" />
+
+                    <div className="msg__content">
+                        {role === 'assistant'
+                            ? <div dangerouslySetInnerHTML={{ __html: renderedContent! }} />
+                            : <span>{content}</span>
+                        }
                     </div>
-                ))}
-                {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-[var(--line)]">
-                        <div className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase opacity-60 mb-1.5">
-                            IEEE Refs
+
+                    {sources.length > 0 && (
+                        <div className="msg__sources">
+                            <span className="msg__sources-label">
+                                <span className="msg__sources-bracket">[</span>
+                                VERIFIED IEEE REFERENCES
+                                <span className="msg__sources-bracket">]</span>
+                            </span>
+                            <ul className="msg__sources-list">
+                                {sources.map((src, idx) => (
+                                    <li key={idx} className="msg__source">
+                                        <a href={src.link} target="_blank" rel="noopener noreferrer" title={src.title}>
+                                            <span className="msg__source-idx">{String(idx + 1).padStart(2, '0')}</span>
+                                            <span className="msg__source-title">{src.title}</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                <path d="M7 17L17 7M17 7H7M17 7V17" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                        <ul className="space-y-1">
-                            {msg.sources.map((s, i) => (
-                                <li key={i}>
-                                    <a
-                                        href={s.link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-[12px] text-[var(--cy-dim)] hover:text-[var(--cy)] underline decoration-dotted"
-                                        title={s.title}
-                                    >
-                                        {String(i + 1).padStart(2, '0')} · {s.title}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
 });
 
-const Chat = () => {
-    const navigate = useNavigate();
-    const [mode, setMode] = useState<ChatMode>('deep_dive');
+/* ── SuggestionChip ──────────────────────────────────────────────────────── */
+const SuggestionChip = memo(function SuggestionChip({
+    text, index, onClick, disabled,
+}: {
+    text: string; index: number; onClick: (t: string) => void; disabled: boolean;
+}) {
+    return (
+        <button
+            className={`sugg${disabled ? ' sugg--disabled' : ''}`}
+            onClick={() => !disabled && onClick(text)}
+            disabled={disabled}
+            aria-label={`Suggestion: ${text}`}
+            type="button"
+            style={{ '--i': index } as React.CSSProperties}
+        >
+            <span className="sugg__corner sugg__corner--tl" aria-hidden="true" />
+            <span className="sugg__corner sugg__corner--tr" aria-hidden="true" />
+            <span className="sugg__corner sugg__corner--bl" aria-hidden="true" />
+            <span className="sugg__corner sugg__corner--br" aria-hidden="true" />
+            <span className="sugg__idx">{String(index + 1).padStart(2, '0')}</span>
+            <span className="sugg__text">{text}</span>
+            <span className="sugg__arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
+            </span>
+        </button>
+    );
+});
+
+/* ── DeepDiveLoader ──────────────────────────────────────────────────────── */
+function DeepDiveLoader({ step }: { step: number }) {
+    const current = STATUS_STEPS[step];
+    return (
+        <div className="cw-loader">
+            <div className="cw-loader__inner">
+                <div className="cw-loader__corner cw-loader__corner--tl" aria-hidden="true" />
+                <div className="cw-loader__corner cw-loader__corner--tr" aria-hidden="true" />
+                <div className="cw-loader__corner cw-loader__corner--bl" aria-hidden="true" />
+                <div className="cw-loader__corner cw-loader__corner--br" aria-hidden="true" />
+                <div className="cw-loader__head">
+                    <span>STEP {current.code}/005</span>
+                    <span className="cw-loader__dot" aria-hidden="true" />
+                </div>
+                <div className="cw-loader__text" key={step}>{current.text}</div>
+                <div className="cw-loader__progress" aria-hidden="true">
+                    <span style={{ width: `${((step + 1) / STATUS_STEPS.length) * 100}%` }} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Chat page ───────────────────────────────────────────────────────────── */
+function Chat() {
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
-    const [history, setHistory] = useState<ChatMessage[]>([]);
-    const [input, setInput] = useState('');
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+    const [mode, setMode] = useState<ChatMode>('deep_dive');
     const [isTyping, setIsTyping] = useState(false);
-    const [banned, setBanned] = useState<boolean>(isBanned());
-    const [banMins, setBanMins] = useState<number>(banRemainingMinutes());
+    const [showWelcome, setShowWelcome] = useState(true);
+    const [showOnboarding, setShowOnboarding] = useState(() =>
+        !sessionStorage.getItem('ieee_chat_session_initialized')
+    );
+    const [showGuideTooltip, setShowGuideTooltip] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const [banned, setBanned] = useState(isBanned());
+    const [banMins, setBanMins] = useState(banRemainingMinutes());
     const [statusStep, setStatusStep] = useState(0);
-    const [showOnboarding, setShowOnboarding] = useState(() => {
-        // Only show the onboarding initialization sequence once per session (cleared on tab close)
-        return !sessionStorage.getItem('ieee_chat_session_initialized');
-    });
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLTextAreaElement>(null);
-    const abortRef = useRef<AbortController | null>(null);
+    const [inputValue, setInputValue] = useState('');
+    const [focused, setFocused] = useState(false);
 
-    const handleOnboardingDismiss = useCallback(() => {
-        sessionStorage.setItem('ieee_chat_session_initialized', 'true');
-        setShowOnboarding(false);
-    }, []);
+    const chatWrapperRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    /* Warmup once on mount (no-op if SiteLoader already warmed it). */
+    /* Warmup on mount */
     useEffect(() => {
         warmupChat().catch(() => { /* silent — first request just takes longer */ });
     }, []);
 
-    /* Ban countdown — clears when expired. */
+    /* Ban countdown */
     useEffect(() => {
         if (!banned) return;
         const timer = setInterval(() => {
-            if (!isBanned()) {
-                setBanned(false);
-                setBanMins(0);
-                clearInterval(timer);
-            } else {
-                setBanMins(banRemainingMinutes());
-            }
+            if (!isBanned()) { setBanned(false); setBanMins(0); clearInterval(timer); }
+            else setBanMins(banRemainingMinutes());
         }, 1000);
         return () => clearInterval(timer);
     }, [banned]);
 
-    /* Status-step rotator: advances every 2.4s while typing, resets when idle. */
+    /* Status-step rotator */
     useEffect(() => {
-        if (!isTyping) {
-            setStatusStep(0);
-            return;
-        }
+        if (!isTyping) { setStatusStep(0); return; }
         const t = setInterval(() => {
             setStatusStep((s) => (s < STATUS_STEPS.length - 1 ? s + 1 : s));
         }, 2400);
         return () => clearInterval(t);
     }, [isTyping]);
 
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (el) el.scrollTop = el.scrollHeight;
-    }, [messages, isTyping]);
+    /* Auto-scroll */
+    const scrollToBottom = useCallback(() => {
+        if (chatWrapperRef.current) {
+            chatWrapperRef.current.scrollTo({ top: chatWrapperRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    }, []);
+    useEffect(() => { scrollToBottom(); }, [messages, isTyping, scrollToBottom]);
 
-    useEffect(() => {
-        const t = setTimeout(() => inputRef.current?.focus(), 250);
-        return () => clearTimeout(t);
+    /* Onboarding */
+    const handleOnboardingDismiss = useCallback(() => {
+        sessionStorage.setItem('ieee_chat_session_initialized', 'true');
+        setShowOnboarding(false);
+        setIsReady(true);
+        setShowGuideTooltip(true);
     }, []);
 
-    const appendAssistant = useCallback((msg: Omit<DisplayMessage, 'role'>) => {
-        setMessages((prev) => [...prev, { role: 'assistant', ...msg }]);
-    }, []);
+    const handleGuideTooltipDismiss = useCallback(() => setShowGuideTooltip(false), []);
 
-    const handleSend = useCallback(async () => {
-        const text = input.trim();
-        if (!text || isTyping) return;
+    /* Send message */
+    const handleSendMessage = useCallback(async (text: string) => {
+        if (!text.trim()) return;
 
-        // Re-check ban at send time in case it expired while typing.
         if (isBanned()) {
             setBanned(true);
             const mins = banRemainingMinutes();
-            appendAssistant({
-                content: `🚫 You're on cooldown for ${mins} more minute${mins !== 1 ? 's' : ''}. Please come back later.`,
-                isWarning: true,
-            });
+            setMessages((prev) => [...prev, {
+                role: 'assistant',
+                content: `🚫 You're temporarily on cooldown for ${mins} more minute${mins !== 1 ? 's' : ''}. Please come back later!`,
+                sources: [],
+                timestamp: new Date(),
+            }]);
             return;
         }
 
-        setInput('');
-        if (inputRef.current) inputRef.current.style.height = 'auto';
-
-        const userMsg: DisplayMessage = { role: 'user', content: text };
-        setMessages((prev) => [...prev, userMsg]);
-
-        const newHistory: ChatMessage[] = [...history, { role: 'user', content: text }];
-        setHistory(newHistory);
+        setShowWelcome(false);
+        setMessages((prev) => [...prev, { role: 'user', content: text, timestamp: new Date() }]);
+        const newHistory: ChatMessage[] = [...chatHistory, { role: 'user', content: text }];
+        setChatHistory(newHistory);
         setIsTyping(true);
 
-        abortRef.current?.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-
         try {
-            const data = await sendChat(newHistory, mode, controller.signal);
-            const content = data.choices?.[0]?.message?.content ?? 'Sorry, no response.';
+            const data = await sendChat(newHistory, mode);
 
-            // ── Watcher caught a gibberish/abuse query → strike. ──
             if (data.is_warning) {
-                const strikes = getStrikes() + 1;
-                setStrikes(strikes);
-
-                if (strikes >= MAX_STRIKES) {
-                    setBan();
-                    setBanned(true);
-                    appendAssistant({
-                        content: `🚫 Too many nonsense messages. You've been placed on a 30-minute cooldown.`,
-                        isWarning: true,
-                    });
+                const currentStrikes = getStrikes() + 1;
+                setStrikes(currentStrikes);
+                let warningContent: string;
+                if (currentStrikes >= MAX_STRIKES) {
+                    setBan(); setBanned(true);
+                    warningContent = `🚫 Too many nonsense messages. You've been put on a 30-minute cooldown. Please use this time wisely!`;
                 } else {
-                    const remaining = MAX_STRIKES - strikes;
-                    appendAssistant({
-                        content: `⚠️ Warning ${strikes}/${MAX_STRIKES}: Please send meaningful queries. ${remaining} more warning${remaining !== 1 ? 's' : ''} before cooldown.`,
-                        isWarning: true,
-                    });
+                    warningContent = `⚠️ Warning ${currentStrikes}/${MAX_STRIKES}: Please send meaningful messages. ${MAX_STRIKES - currentStrikes} more warning${MAX_STRIKES - currentStrikes !== 1 ? 's' : ''} before a temporary cooldown.`;
                 }
+                setMessages((prev) => [...prev, { role: 'assistant', content: warningContent, sources: [], timestamp: new Date() }]);
                 return;
             }
 
-            // ── Classifier rejected the query (non-technical / casual). ──
-            if (data.is_rejected) {
-                appendAssistant({ content, isRejected: true });
-                return;
+            if (data.choices?.[0]) {
+                const assistantContent = data.choices[0].message.content;
+                const sources = data.sources || [];
+                setMessages((prev) => [...prev, { role: 'assistant', content: assistantContent, sources, timestamp: new Date() }]);
+                setChatHistory((prev) => [...prev, { role: 'assistant', content: assistantContent }]);
+            } else {
+                setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', sources: [], timestamp: new Date() }]);
             }
-
-            // ── Normal answer. Track in history so the model has memory. ──
-            appendAssistant({ content, sources: data.sources });
-            setHistory((prev) => [...prev, { role: 'assistant', content }]);
-        } catch (err) {
-            if ((err as Error).name === 'AbortError') return;
-            appendAssistant({
-                content: 'Could not reach the chatbot service. Please try again shortly.',
-            });
+        } catch {
+            setMessages((prev) => [...prev, { role: 'assistant', content: 'Technical error: Could not connect to the server.', sources: [], timestamp: new Date() }]);
         } finally {
             setIsTyping(false);
         }
-    }, [input, isTyping, history, mode, appendAssistant]);
+    }, [chatHistory, mode]);
 
-    const handleKeyDown = useCallback(
-        (e: KeyboardEvent<HTMLTextAreaElement>) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-            }
-        },
-        [handleSend]
-    );
+    /* Mode change */
+    const handleModeChange = useCallback((newMode: ChatMode) => {
+        setMode(newMode);
+        setMessages([]);
+        setChatHistory([]);
+        setShowWelcome(true);
+    }, []);
 
-    const handleInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-        setInput(e.target.value);
+    /* Textarea helpers */
+    const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInputValue(e.target.value);
         const ta = e.target;
         ta.style.height = 'auto';
         ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
     }, []);
 
-    const handleModeSwitch = useCallback(
-        (newMode: ChatMode) => {
-            if (newMode === mode) return;
-            setMode(newMode);
-            setMessages([]);
-            setHistory([]);
-        },
-        [mode]
-    );
+    const handleSend = useCallback(() => {
+        const text = inputValue.trim();
+        if (!text || !isReady || banned || isTyping) return;
+        handleSendMessage(text);
+        setInputValue('');
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    }, [inputValue, isReady, banned, isTyping, handleSendMessage]);
 
-    const activeMode = MODES.find((m) => m.key === mode) ?? MODES[0];
-    const currentStatus = STATUS_STEPS[statusStep];
-    const statusProgress = ((statusStep + 1) / STATUS_STEPS.length) * 100;
-    const inputDisabled = isTyping || banned;
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    }, [handleSend]);
+
+    const modeKeys = Object.keys(MODE_CONTENT) as ChatMode[];
+    const currentModeContent = useMemo(() => MODE_CONTENT[mode], [mode]);
+    const inputDisabled = !isReady || banned || isTyping;
+    const charCount = inputValue.length;
 
     return (
-        <main className="relative pt-0 md:pt-20 pb-0 md:pb-6 h-[100dvh] md:min-h-screen flex flex-col overflow-hidden md:overflow-visible">
-            <div className="absolute inset-0 -z-10">
+        <>
+            {/* ── Background ── */}
+            <div className="site-bg" aria-hidden="true">
+                <div className="site-bg__grid" />
+                <div className="site-bg__noise" />
+                <div className="site-bg__glow" />
+                <div className="site-bg__scan" />
+            </div>
+            <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden="true">
                 <ChatBackdrop />
             </div>
 
-            <div className="max-w-5xl w-full mx-auto px-0 md:px-8 flex-1 flex flex-col min-h-0">
-                {/* Header (Desktop Only) */}
-                <header className="hidden md:flex items-center justify-between pb-4 mb-4" style={{ borderBottom: '1px solid var(--line)' }}>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
-                            style={{ border: '1px solid var(--line)' }}
-                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
-                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
-                            aria-label="Back"
-                        >
-                            <span className="material-symbols-outlined text-base">arrow_back</span>
-                        </button>
-                        <div className="flex items-center gap-2">
-                            <div className="status-dot" />
-                            <span className="font-display-ieee font-bold text-[18px] tracking-tight">
-                                IEEE Assistant<span className="text-[var(--cy)]">.</span>
-                            </span>
-                            <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--txt-3)' }}>
-                                IEEE Assistant
+            {/* ── Shell ── */}
+            <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+
+                {/* Header */}
+                <header className="hdr">
+                    <div className="hdr__brand">
+                        <div className="hdr__logo" aria-hidden="true">
+                            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M24 3L42.7846 13.5V34.5L24 45L5.21539 34.5V13.5L24 3Z" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+                                <path d="M24 9L37.5933 16.75V32.25L24 40L10.4067 32.25V16.75L24 9Z" fill="url(#cw-hex-grad)" opacity="0.15" />
+                                <path d="M24 9L37.5933 16.75V32.25L24 40L10.4067 32.25V16.75L24 9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                                <path d="M18 21H30M18 27H26" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
+                                <circle cx="24" cy="3" r="2" fill="currentColor" />
+                                <circle cx="42.7846" cy="13.5" r="2" fill="currentColor" />
+                                <circle cx="42.7846" cy="34.5" r="2" fill="currentColor" />
+                                <circle cx="24" cy="45" r="2" fill="currentColor" />
+                                <circle cx="5.21539" cy="34.5" r="2" fill="currentColor" />
+                                <circle cx="5.21539" cy="13.5" r="2" fill="currentColor" />
+                                <defs>
+                                    <linearGradient id="cw-hex-grad" x1="10" y1="9" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                                        <stop stopColor="#00e5ff" />
+                                        <stop offset="1" stopColor="#ffb84d" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <div className="hdr__title">
+                            <h1>
+                                <span className="hdr__title-main">IEEE</span>
+                                <span className="hdr__title-sep">/</span>
+                                <span className="hdr__title-sub">Assistant</span>
+                            </h1>
+                            <span className="hdr__subtitle">
+                                <span className="hdr__pulse" />
+                                IEEE INTELLIGENCE NODE
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {MODES.map((m) => {
-                            const active = m.key === mode;
-                            return (
-                                <button
-                                    key={m.key}
-                                    onClick={() => handleModeSwitch(m.key)}
-                                    className={`px-3 py-1.5 font-mono-ieee text-[10px] tracking-[0.18em] uppercase transition-colors ${
-                                        active
-                                            ? 'text-[var(--cy)] bg-[var(--cy-soft)] border border-[var(--line-cy)]'
-                                            : 'text-[var(--txt-3)] hover:text-[var(--txt-2)] border border-[var(--line)]'
-                                    }`}
-                                >
-                                    <span className="opacity-60 mr-1">{m.code}</span>
-                                    {m.label}
-                                </button>
-                            );
-                        })}
+                    <div className="hdr__controls">
+                        <div className="modeswitch" role="tablist" aria-label="Select mode">
+                            {modeKeys.map((k) => {
+                                const m = MODE_CONTENT[k];
+                                const active = mode === k;
+                                return (
+                                    <button
+                                        key={k}
+                                        role="tab"
+                                        aria-selected={active}
+                                        className={`modeswitch__tab${active ? ' is-active' : ''}`}
+                                        onClick={() => !active && handleModeChange(k)}
+                                    >
+                                        <span className="modeswitch__code">{m.code}</span>
+                                        <span className="modeswitch__label">{m.label}</span>
+                                    </button>
+                                );
+                            })}
+                            <span
+                                className="modeswitch__indicator"
+                                style={{ transform: `translateX(${modeKeys.indexOf(mode) * 100}%)` }}
+                                aria-hidden="true"
+                            />
+                        </div>
+
+                        {showGuideTooltip && (
+                            <div className="guide">
+                                <div className="guide__arrow" aria-hidden="true" />
+                                <div className="guide__body">
+                                    <strong>// SWITCH CHANNELS</strong>
+                                    <p>Tap a tab to swap context. Deep Dive for research, Student Branch for local info.</p>
+                                    <button className="guide__btn" onClick={handleGuideTooltipDismiss}>
+                                        ACKNOWLEDGE
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </header>
 
-                {/* macOS & Cyberpunk Style Window Panel (Full-screen on mobile) */}
-                <div className="relative flex-1 flex flex-col bg-[rgba(13,19,32,0.8)] border-y md:border border-[var(--line-cy)] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] backdrop-blur-md rounded-none mb-0 md:mb-6 min-h-0 overflow-hidden animate-fade-in">
-                    {/* Window Titlebar */}
-                    <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-[var(--line)] bg-[rgba(0,229,255,0.03)] font-mono-ieee text-[11px] text-[var(--txt-3)] select-none">
-                        {/* Left Side: Back button + Traffic light dots */}
-                        <div className="flex items-center gap-3">
-                            {/* Compact Back Arrow (Mobile Only) */}
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="md:hidden w-7 h-7 flex items-center justify-center border border-[var(--line)] hover:text-primary transition-colors bg-black/20"
-                                aria-label="Back"
-                            >
-                                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                            </button>
-
-                            <div className="hidden sm:flex items-center gap-1.5 mr-2">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#ff3d71]/80" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#ffb84d]/80" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80" />
-                            </div>
-                        </div>
-                        
-                        {/* Center Side: Path / Title */}
-                        <div className="flex-1 text-center md:text-left truncate font-medium">
-                            ~/ieee-assistant/channels/{mode}
-                        </div>
-                        
-                        {/* Right Side: Status or Compact Switcher (Mobile Only) */}
-                        <div className="flex items-center gap-2">
-                            {/* Desktop only status */}
-                            <div className="font-mono-ieee text-[9px] tracking-widest text-[var(--cy)] uppercase hidden md:block">
-                                SECURE CONNECTION // {activeMode.code}
-                            </div>
-                            
-                            {/* Mobile compact switcher */}
-                            <div className="flex md:hidden items-center border border-[var(--line)] bg-[rgba(5,7,13,0.5)] p-0.5">
-                                {MODES.map((m) => {
-                                    const active = m.key === mode;
-                                    return (
-                                        <button
-                                            key={m.key}
-                                            onClick={() => handleModeSwitch(m.key)}
-                                            className={`px-2 py-1 text-[9px] tracking-wider uppercase transition-colors ${
-                                                active
-                                                    ? 'text-[var(--cy)] bg-[var(--cy-soft)] font-bold'
-                                                    : 'text-[var(--txt-3)]'
-                                            }`}
-                                        >
-                                            {m.key === 'deep_dive' ? 'DD' : 'SB'}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                {/* Status bar */}
+                <div className="chat-statusbar" aria-hidden="true">
+                    <div className="chat-statusbar__group">
+                        <span className="chat-statusbar__label">SYS</span>
+                        <span className="chat-statusbar__value">IEEE.ASSISTANT</span>
                     </div>
+                    <div className="chat-statusbar__group">
+                        <span className="chat-statusbar__label">CHAN</span>
+                        <span className="chat-statusbar__value">{currentModeContent.code}</span>
+                    </div>
+                    <div className="chat-statusbar__group chat-statusbar__group--grow">
+                        <span className="chat-statusbar__bar" />
+                    </div>
+                    <div className="chat-statusbar__group">
+                        <span className="chat-statusbar__label">STATE</span>
+                        <span className={`chat-statusbar__value${isTyping ? ' chat-statusbar__value--active' : ''}`}>
+                            {!isReady ? 'BOOT' : banned ? 'LOCKED' : isTyping ? 'PROCESSING' : 'READY'}
+                        </span>
+                    </div>
+                </div>
 
-                    {/* Window Content */}
-                    <div className="flex-1 flex flex-col p-3 md:p-6 min-h-0 overflow-hidden relative">
-                        {/* Corner Accents */}
-                        <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[var(--cy)] pointer-events-none" />
-                        <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[var(--cy)] pointer-events-none" />
-                        <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[var(--cy)] pointer-events-none" />
-                        <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--cy)] pointer-events-none" />
+                {/* Chat scroll area */}
+                <main className="chat-scroll" ref={chatWrapperRef}>
+                    <div className="chat-scroll__inner">
 
-                        {/* Ban banner */}
-                        {banned && (
-                            <div
-                                className="flex items-center gap-3 px-4 py-3 mb-3 relative z-10 animate-fade-in"
-                                style={{
-                                    background: 'rgba(255,61,113,0.08)',
-                                    border: '1px solid var(--mg)',
-                                    borderLeftWidth: '3px',
-                                }}
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                </svg>
-                                <div className="flex-1">
-                                    <div className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase" style={{ color: 'var(--mg)' }}>
-                                        Session locked
-                                    </div>
-                                    <div className="text-[13px]" style={{ color: 'var(--txt-2)' }}>
-                                        Cooldown: <strong style={{ color: 'var(--mg)' }}>{banMins}</strong> minute{banMins !== 1 ? 's' : ''} remaining
-                                    </div>
+                        {/* Welcome screen */}
+                        {showWelcome && (
+                            <div className="cw-welcome">
+                                <div className="cw-welcome__tag">
+                                    <span className="cw-welcome__tag-bracket">[</span>
+                                    {currentModeContent.code} · {currentModeContent.label.toUpperCase()}
+                                    <span className="cw-welcome__tag-bracket">]</span>
+                                </div>
+                                <h2 className="cw-welcome__title">
+                                    <span className="cw-welcome__title-line">Hi, I'm</span>
+                                    <span className="cw-welcome__title-name">
+                                        IEEE Assistant<span className="cw-welcome__title-dot">.</span>
+                                        <span className="cw-welcome__cursor" aria-hidden="true" />
+                                    </span>
+                                </h2>
+                                <p className="cw-welcome__desc">{currentModeContent.description}</p>
+
+                                <div className="cw-welcome__divider" aria-hidden="true">
+                                    <span /><em>TRY ASKING</em><span />
+                                </div>
+
+                                <div className="cw-welcome__suggestions">
+                                    {currentModeContent.suggestions.map((text, idx) => (
+                                        <SuggestionChip
+                                            key={idx}
+                                            text={text}
+                                            index={idx}
+                                            onClick={handleSendMessage}
+                                            disabled={!isReady}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         )}
 
                         {/* Messages */}
-                        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto py-4 space-y-4 pr-1">
-                            {messages.length === 0 && !isTyping && (
-                                <div className="text-center pt-16 px-4 reveal-stagger is-visible">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 mb-8" style={{ border: '1px solid rgba(0,229,255,0.2)', background: 'rgba(0,229,255,0.05)' }}>
-                                        <div className="status-dot" />
-                                        <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">[{activeMode.code}] Online</span>
-                                    </div>
-                                    <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter mb-4">
-                                        Talk to the <span className="text-gradient">IEEE Assistant</span>
-                                    </h1>
-                                    <p className="max-w-xl mx-auto text-on-surface-variant text-base leading-relaxed">
-                                        {activeMode.blurb}
-                                    </p>
-                                    <div className="mt-10 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-                                        {(mode === 'deep_dive'
-                                            ? ['What is the IEEE 802.11ax standard?', 'Explain transformer attention.', 'Compare 5G and 6G architectures.']
-                                            : ['When is the next workshop?', 'Who is the chairperson?', 'What events are upcoming?']
-                                        ).map((q) => (
-                                            <button
-                                                key={q}
-                                                onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                                                className="px-3 py-2 text-[12px] text-on-surface-variant hover:text-primary transition-colors"
-                                                style={{ border: '1px solid var(--line)', background: 'rgba(13,19,32,0.5)' }}
-                                                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line-cy)')}
-                                                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--line)')}
-                                            >
-                                                {q}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {messages.map((msg, i) => (
-                                <MessageRow key={i} msg={msg} />
+                        <div className="msglist">
+                            {messages.map((msg, idx) => (
+                                <MessageBubble
+                                    key={idx}
+                                    role={msg.role}
+                                    content={msg.content}
+                                    sources={msg.sources}
+                                    timestamp={msg.timestamp}
+                                />
                             ))}
-
-                            {isTyping && (
-                                <div className="flex justify-start">
-                                    {mode === 'deep_dive' ? (
-                                        <div
-                                            className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line-cy)] min-w-[260px]"
-                                            style={{
-                                                clipPath:
-                                                    'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
-                                            }}
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="font-mono-ieee text-[10px] tracking-[0.22em] uppercase text-primary">
-                                                    STEP {currentStatus.code}/005
-                                                </span>
-                                                <span className="dot-bounce" />
-                                            </div>
-                                            <div key={statusStep} className="text-[13px] font-mono-ieee" style={{ animation: 'chat-shift 0.4s ease-out' }}>
-                                                {currentStatus.text}
-                                            </div>
-                                            <div className="relative h-0.5 mt-3 overflow-hidden" style={{ background: 'rgba(0,229,255,0.08)' }}>
-                                                <div
-                                                    className="absolute inset-y-0 left-0 transition-all"
-                                                    style={{
-                                                        width: `${statusProgress}%`,
-                                                        background: 'linear-gradient(to right, var(--cy), var(--am))',
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className="px-4 py-3 bg-[rgba(13,19,32,0.7)] border border-[var(--line)] flex items-center gap-1.5"
-                                            style={{
-                                                clipPath:
-                                                    'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))',
-                                            }}
-                                        >
-                                            <span className="font-mono-ieee text-[10px] tracking-[0.2em] uppercase opacity-60 mr-1">
-                                                IEEE ASSISTANT · composing
-                                            </span>
-                                            <span className="dot-bounce" />
-                                            <span className="dot-bounce" style={{ animationDelay: '120ms' }} />
-                                            <span className="dot-bounce" style={{ animationDelay: '240ms' }} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
 
-                        {/* Composer */}
-                        <div className="pt-4 pb-2 flex items-end gap-3" style={{ borderTop: '1px solid var(--line)' }}>
-                            <textarea
-                                ref={inputRef}
-                                value={input}
-                                onChange={handleInput}
-                                onKeyDown={handleKeyDown}
-                                rows={1}
-                                placeholder={
-                                    banned ? 'Session locked…' :
-                                    isTyping ? 'IEEE Assistant is thinking…' :
-                                    'Message the IEEE Assistant…'
-                                }
-                                disabled={inputDisabled}
-                                className="flex-1 bg-transparent border border-[var(--line)] px-4 py-3 text-[14px] resize-none outline-none focus:border-[var(--line-cy)] disabled:opacity-50"
-                                style={{ maxHeight: 200, color: 'var(--txt)', fontFamily: 'var(--font-body)', background: 'rgba(5,7,13,0.6)' }}
-                            />
+                        {/* Typing / Loading indicator */}
+                        {isTyping && (
+                            mode === 'deep_dive'
+                                ? <DeepDiveLoader step={statusStep} />
+                                : (
+                                    <div className="cw-typing">
+                                        <div className="cw-typing__rail" aria-hidden="true">
+                                            <span className="msg__rail-tick" />
+                                            <span className="msg__rail-line" />
+                                            <span className="msg__rail-tick" />
+                                        </div>
+                                        <div className="cw-typing__body">
+                                            <span className="cw-typing__label">IEEE ASSISTANT is composing</span>
+                                            <div className="cw-typing__dots">
+                                                <span /><span /><span />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                        )}
+                    </div>
+                </main>
+
+                {/* Ban banner */}
+                {banned && (
+                    <div className="cw-ban">
+                        <div className="cw-ban__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                            </svg>
+                        </div>
+                        <div className="cw-ban__text">
+                            <strong>SESSION LOCKED</strong>
+                            <span>Cooldown: <b>{banMins}</b> min{banMins !== 1 ? 's' : ''} remaining</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Composer */}
+                <footer className="cw-composer">
+                    <div className={`cw-composer__box${focused ? ' is-focused' : ''}${inputDisabled ? ' is-disabled' : ''}`}>
+                        <span className="cw-composer__corner cw-composer__corner--tl" aria-hidden="true" />
+                        <span className="cw-composer__corner cw-composer__corner--tr" aria-hidden="true" />
+                        <span className="cw-composer__corner cw-composer__corner--bl" aria-hidden="true" />
+                        <span className="cw-composer__corner cw-composer__corner--br" aria-hidden="true" />
+
+                        <div className="cw-composer__prefix" aria-hidden="true">
+                            <span className="cw-composer__chevron">&gt;</span>
+                            <span className="cw-composer__chan">{currentModeContent.code}</span>
+                        </div>
+
+                        <textarea
+                            ref={textareaRef}
+                            className="cw-composer__input"
+                            placeholder={
+                                !isReady ? 'Initializing system...' :
+                                banned ? 'Session locked...' :
+                                isTyping ? 'IEEE Assistant is thinking...' :
+                                'Transmit message to IEEE Assistant...'
+                            }
+                            rows={1}
+                            value={inputValue}
+                            onChange={handleInput}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            onKeyDown={handleKeyDown}
+                            disabled={inputDisabled}
+                            aria-label="Message input"
+                        />
+
+                        <div className="cw-composer__meta">
+                            <span className="cw-composer__count" aria-hidden="true">
+                                {String(charCount).padStart(4, '0')}
+                            </span>
                             <button
+                                className="cw-composer__send"
+                                disabled={!inputValue.trim() || inputDisabled}
                                 onClick={handleSend}
-                                disabled={!input.trim() || inputDisabled}
-                                className="btn-gradient px-5 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
-                                aria-label="Send"
+                                aria-label="Send message"
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M5 12h14M13 5l7 7-7 7" />
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path d="M5 12L19 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                                    <path d="M13 6L19 12L13 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
+                                <span className="cw-composer__send-label">SEND</span>
                             </button>
                         </div>
-                        <p className="font-mono-ieee text-[9px] tracking-[0.18em] uppercase text-center mt-2" style={{ color: 'var(--txt-3)' }}>
-                            Press Enter to send · Shift+Enter for new line
-                        </p>
                     </div>
-                </div>
+                    <div className="cw-composer__hint" aria-hidden="true">
+                        <kbd>Enter</kbd> to send <span>·</span> <kbd>Shift</kbd>+<kbd>Enter</kbd> for newline
+                    </div>
+                </footer>
             </div>
 
-            <style>{`
-                .dot-bounce {
-                    width: 6px; height: 6px; border-radius: 50%;
-                    background: var(--cy-dim);
-                    animation: chatbotDot 1.1s ease-in-out infinite;
-                }
-                @keyframes chatbotDot {
-                    0%, 100% { opacity: 0.3; transform: translateY(0); }
-                    50%      { opacity: 1; transform: translateY(-3px); }
-                }
-                @keyframes chat-shift {
-                    from { opacity: 0; transform: translateX(-6px); }
-                    to   { opacity: 1; transform: translateX(0); }
-                }
-            `}</style>
-
+            {/* Onboarding modal */}
             {showOnboarding && (
-                <ChatOnboardingModal 
-                    onDismiss={handleOnboardingDismiss}
-                />
+                <ChatOnboardingModal onDismiss={handleOnboardingDismiss} />
             )}
-        </main>
+        </>
     );
-};
+}
 
 export default Chat;
