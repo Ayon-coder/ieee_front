@@ -66,6 +66,26 @@
     50% { opacity: 0.4; transform: scale(0.7); }
 }
 
+.hdr__back {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    color: var(--txt-3);
+    text-decoration: none;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--line);
+    background: transparent;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    flex-shrink: 0;
+}
+.hdr__back svg { width: 14px; height: 14px; }
+.hdr__back:hover {
+    color: var(--cy);
+    border-color: var(--cy);
+    background: rgba(0, 229, 255, 0.06);
+}
+
 .hdr__controls {
     display: flex; align-items: center; gap: 1rem;
     position: relative;
@@ -885,6 +905,7 @@
     }
     .hdr__brand { justify-content: flex-start; }
     .hdr__controls { justify-content: space-between; }
+    .hdr__back { align-self: flex-start; }
     .modeswitch { flex: 1; }
     .modeswitch__tab { flex: 1; }
     .chat-statusbar { padding: 0.5rem 16px; }

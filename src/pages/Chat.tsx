@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import { Link } from 'react-router-dom';
 import { sendChat, warmupChat } from '../lib/chatbotApi';
 import type { ChatMessage, ChatMode, ChatSource } from '../lib/chatbotApi';
 import { ChatBackdrop } from '../components/PageBackdrops';
@@ -436,6 +437,12 @@ function Chat() {
 
                 {/* Header */}
                 <header className="hdr">
+                    <Link to="/" className="hdr__back" aria-label="Back to site">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M19 12H5M5 12L11 6M5 12L11 18" />
+                        </svg>
+                        <span>Back</span>
+                    </Link>
                     <div className="hdr__brand">
                         <div className="hdr__logo" aria-hidden="true">
                             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
