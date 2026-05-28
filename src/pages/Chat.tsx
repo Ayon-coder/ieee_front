@@ -280,7 +280,9 @@ function Chat() {
         !sessionStorage.getItem('ieee_chat_session_initialized')
     );
     const [showGuideTooltip, setShowGuideTooltip] = useState(false);
-    const [isReady, setIsReady] = useState(false);
+    const [isReady, setIsReady] = useState(() =>
+        !!sessionStorage.getItem('ieee_chat_session_initialized')
+    );
     const [banned, setBanned] = useState(isBanned());
     const [banMins, setBanMins] = useState(banRemainingMinutes());
     const [statusStep, setStatusStep] = useState(0);
